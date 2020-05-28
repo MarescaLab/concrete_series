@@ -1,0 +1,1413 @@
+---
+title: "Analysis driver"
+author: "Anders Kiledal"
+date: "May 8, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "D:/Google Drive/Documents/UDel/Research/Concrete_analysis/")
+```
+
+
+#Initial sequence processing:
+  -make demux file
+  -run DADA2 to make the ASV table and rep_seq files
+  -can be run using this code, takes ~1hr on decent laptop, less on bimiox
+  
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#Make visualization about the sequence data
+#qiime demux summarize \
+#  --i-data data/qiime2/dada2_filt_paired-end-demux.qza \
+#  --o-visualization data/qiime2/dada2_filt_paired-end-demux.qzv
+
+#Denoise the sequence data, determine representative sequence varients, and make ASV table
+qiime dada2 denoise-paired \
+  --i-demultiplexed-seqs data/qiime2/dada2_filt_paired-end-demux.qza \
+  --p-trunc-len-f 270 --p-trunc-len-r 191 \
+  --p-n-threads 8 \
+  --o-representative-sequences data/qiime2/pre_vs_all_unfilt_seqs.qza \
+  --o-table data/qiime2/pre_vs_all_unfilt_table.qza \
+  --o-denoising-stats data/qiime2/dada2_stats
+
+qiime feature-table summarize \
+  --i-table data/qiime2/pre_vs_all_unfilt_table.qza \
+  --o-visualization data/qiime2/pre_vs_all_unfilt_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+
+#Dada2 often produces some identical sequences of slightly different length, this merges those sequences. Similar in concept to the "collapseNoMismatch" command in dada2.
+qiime vsearch cluster-features-de-novo \
+  --i-table data/qiime2/pre_vs_all_unfilt_table.qza\
+  --i-sequences data/qiime2/pre_vs_all_unfilt_seqs.qza \
+  --p-perc-identity 1 \
+  --o-clustered-table data/qiime2/all_unfilt_table.qza \
+  --o-clustered-sequences data/qiime2/all_unfilt_seqs.qza
+
+#Make visualizations for unfiltered table and seqs
+qiime feature-table summarize \
+  --i-table data/qiime2/all_unfilt_table.qza \
+  --o-visualization data/qiime2/all_unfilt_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+  
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/all_unfilt_seqs.qza \
+  --o-visualization data/qiime2/all_unfilt_seqs.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+## Filter out sequences of unexpected length, reduces unexpectedly large branch lengths in tree based on sequence alignment
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#Filter to get sequences >= 400bp & <= 450bp
+qiime feature-table filter-features \
+  --i-table data/qiime2/all_unfilt_table.qza \
+  --m-metadata-file data/qiime2/all_unfilt_seqs.qza \
+  --p-where 'length(sequence) >= 400 AND length(sequence) <= 450' \
+  --o-filtered-table data/qiime2/pre_sepp_table.qza
+
+#Make sequences file only include those in the newly filtered table
+qiime feature-table filter-seqs \
+    --i-data data/qiime2/all_unfilt_seqs.qza \
+    --i-table data/qiime2/pre_sepp_table.qza \
+    --o-filtered-data data/qiime2/pre_sepp_seqs.qza 
+
+#make visualizations
+qiime feature-table summarize \
+  --i-table data/qiime2/pre_sepp_table.qza \
+  --o-visualization data/qiime2/pre_sepp_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/pre_sepp_seqs.qza \
+  --o-visualization data/qiime2/pre_sepp_seqs.qzv
+
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+### Make insertion tree using SEPP. Requires a lot of memory, best to run on biomix (next chunck).
+```{bash, eval=FALSE}
+date
+start=`date +%s`
+
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#qiime fragment-insertion sepp \
+#  --i-representative-sequences data/qiime2/pre_sepp_seqs.qza \
+#  --i-reference-database data/reference/sepp-refs-silva-128.qza \
+#  --p-threads 1 \
+#  --o-tree data/qiime2/sepp_tree.qza \
+#  --o-placements data/qiime2/sepp_placements.qza
+
+qiime fragment-insertion filter-features \
+  --i-table data/qiime2/pre_sepp_table.qza \
+  --i-tree data/qiime2/sepp_tree.qza \
+  --o-filtered-table data/qiime2/all_table.qza \
+  --o-removed-table data/qiime2/table_removed_by_sepp.qza
+  
+qiime feature-table summarize \
+  --i-table data/qiime2/all_table.qza \
+  --o-visualization data/qiime2/all_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+  
+qiime feature-table summarize \
+  --i-table data/qiime2/table_removed_by_sepp.qza \
+  --o-visualization data/qiime2/table_removed_by_sepp.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+  
+#Make sequences file only include those in the newly filtered table
+qiime feature-table filter-seqs \
+    --i-data data/qiime2/pre_sepp_seqs.qza \
+    --i-table data/qiime2/all_table.qza \
+    --o-filtered-data data/qiime2/all_seqs.qza 
+    
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/all_seqs.qza \
+  --o-visualization data/qiime2/all_seqs.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+```{bash}
+date
+
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/bin/bash
+#SBATCH --job-name=sepp
+#SBATCH --workdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=320G
+#SBATCH -c 20
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --time=20-0
+
+hostname
+
+start=`date +%s`
+source activate qiime2-2020.2
+
+qiime fragment-insertion sepp \
+  --i-representative-sequences data/qiime2/pre_sepp_seqs.qza \
+  --i-reference-database data/reference/sepp-refs-silva-128.qza \
+  --p-threads 20 \
+  --o-tree data/qiime2/sepp_tree.qza \
+  --o-placements data/qiime2/sepp_placements.qza
+
+qiime fragment-insertion filter-features \
+  --i-table data/qiime2/pre_sepp_table.qza \
+  --i-tree data/qiime2/sepp_tree.qza \
+  --o-filtered-table data/qiime2/all_table.qza \
+  --o-removed-table data/qiime2/table_removed_by_sepp.qza
+  
+qiime feature-table summarize \
+  --i-table data/qiime2/all_table.qza \
+  --o-visualization data/qiime2/all_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+  
+qiime feature-table summarize \
+  --i-table data/qiime2/table_removed_by_sepp.qza \
+  --o-visualization data/qiime2/table_removed_by_sepp.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+  
+#Make sequences file only include those in the newly filtered table
+qiime feature-table filter-seqs \
+    --i-data data/qiime2/pre_sepp_seqs.qza \
+    --i-table data/qiime2/all_table.qza \
+    --o-filtered-data data/qiime2/all_seqs.qza 
+    
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/all_seqs.qza \
+  --o-visualization data/qiime2/all_seqs.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+
+ENDSSH
+```
+
+
+Make a clustered table
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#Cluster sequences with > 98% similarity, ie. make OTUs
+qiime vsearch cluster-features-de-novo \
+  --i-table data/qiime2/all_table.qza \
+  --i-sequences data/qiime2/all_seqs.qza \
+  --p-perc-identity 0.98 \
+  --o-clustered-table data/qiime2/all_table_98.qza \
+  --o-clustered-sequences data/qiime2/all_seqs_98.qza
+
+qiime tools export \
+  --input-path data/qiime2/all_table_98.qza \
+  --output-path data/qiime2/all_table_98
+
+mv data/qiime2/all_table_98/feature-table.biom data/qiime2/all_table_98.biom
+
+rm -r data/qiime2/all_table_98
+
+biom convert \
+  --to-tsv \
+  -i data/qiime2/all_table_98.biom \
+  -o data/qiime2/all_table_98.tsv
+
+#make visualizations
+qiime feature-table summarize \
+  --i-table data/qiime2/all_table_98.qza \
+  --o-visualization data/qiime2/all_table_98.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/all_seqs_98.qza \
+  --o-visualization data/qiime2/all_seqs_98.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+
+## Train the greengenes taxonomy classifier
+(only has to be run once)
+
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#reference taxonomy is greengenes 99_otus, timmed to the region targeted by the 357f and 806r primers, previously imported into qiime2
+
+qiime feature-classifier fit-classifier-naive-bayes \
+  --i-reference-reads data/qiime2/ref-seqs.qza \
+  --i-reference-taxonomy data/qiime2/ref-taxonomy.qza \
+  --o-classifier data/qiime2/classifier.qza
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+
+##Run the greengenes taxonomy classifier trained above
+(only has to be run once)
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier data/qiime2/classifier.qza \
+  --i-reads data/qiime2/all_seqs.qza \
+  --o-classification data/qiime2/all_taxonomy.qza
+
+qiime metadata tabulate \
+  --m-input-file data/qiime2/all_taxonomy.qza \
+  --o-visualization data/qiime2/all_taxonomy.qzv
+
+qiime taxa barplot \
+  --i-table data/qiime2/all_table.qza \
+  --i-taxonomy data/qiime2/all_taxonomy.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization data/qiime2/all_taxa-bar-plots.qzv
+
+qiime tools export \
+  --input-path data/qiime2/all_taxonomy.qza \
+  --output-path data/processed/
+
+new_header='#OTU ID\ttaxonomy\tconfidence'
+sed -i "1 s/^.*$/$new_header/" data/processed/taxonomy.tsv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+## Test the new (>= qiime2-2020.2) hybrid taxonomy classifier
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+qiime feature-classifier classify-hybrid-vsearch-sklearn \
+  --i-query data/qiime2/all_seqs.qza \
+  --i-reference-reads data/reference/silva_132_full_99_ref_seqs.qza \
+  --i-reference-taxonomy data/reference/silva_132_ref-taxonomy.qza \
+  --i-classifier data/reference/silva-132-99-nb-classifier.qza \
+  --p-threads 4 \
+  --p-no-prefilter \
+  --o-classification data/qiime2/hybrid_taxonomy.qza
+
+qiime tools export \
+  --input-path data/qiime2/hybrid_taxonomy.qza \
+  --output-path data/processed/hybrid_tax/
+  
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+## Classify taxonomy using SILVA, can be a memory hog, better to run on biomix
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#qiime feature-classifier classify-sklearn \
+#  --i-classifier data/qiime2/silva-132-99-nb-classifier.qza \
+#  --i-reads data/qiime2/all_seqs.qza \
+#  --p-n-jobs 1 \
+#  --o-classification data/qiime2/silva_taxonomy.qza
+
+#qiime feature-classifier extract-reads \
+#  --i-sequences data/reference/silva_132_full_99_ref_seqs.qza \
+#  --p-f-primer CTCCTACGGGAGGCAGCAG \
+#  --p-r-primer GGACTACNVGGGTWTCTAAT \
+#  --p-identity 0.9 \
+#  --o-reads data/reference/silva_132_357f_806r_ref-seqs.qza
+  
+#qiime feature-classifier fit-classifier-naive-bayes \
+#  --i-reference-reads data/reference/silva_132_357f_806r_ref-seqs.qza \
+#  --i-reference-taxonomy data/reference/silva_132_ref-taxonomy.qza \
+#  --o-classifier data/reference/silva_132_357f_806r_classifier.qza
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier data/reference/silva-132-99-nb-classifier.qza \
+  --i-reads data/qiime2/all_seqs.qza \
+  --p-n-jobs 1 \
+  --o-classification data/qiime2/silva_taxonomy.qza
+
+qiime metadata tabulate \
+  --m-input-file data/qiime2/silva_taxonomy.qza \
+  --o-visualization data/qiime2/silva_132_taxonomy.qzv
+  
+qiime taxa barplot \
+	--i-table data/qiime2/all_table.qza \
+	--i-taxonomy data/qiime2/silva_132_taxonomy.qza \
+	--m-metadata-file data/sample-metadata.tsv \
+	--o-visualization data/qiime2/silva_132_taxonomy.qzv
+  
+qiime tools export \
+  --input-path data/qiime2/silva_taxonomy.qza \
+  --output-path data/processed/silva_tax/
+  
+new_header='#OTU ID\ttaxonomy\tconfidence'
+sed -i "1 s/^.*$/$new_header/" data/processed/silva_tax/taxonomy.tsv  
+  
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+Make the silva taxonomy have the same format as greengenes to aid in parsing
+```{r}
+library(tidyverse)
+
+tax_ranks <- c("kingdom","phylum","class","order","family","genus","species")
+tax <- read_delim("data/processed/silva_tax/taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  mutate(for_split = taxonomy) %>% 
+  separate(for_split,tax_ranks,sep = ";") %>% 
+  mutate_at(tax_ranks,str_remove,pattern = "D_[0-9]__")
+
+tax_to_write <- tax %>% mutate(taxonomy = paste0("k__", kingdom,"; ",
+                                                 "p__", phylum,"; ",
+                                                 "c__", class, "; ",
+                                                 "o__", order, "; ",
+                                                 "f__", family, "; ",
+                                                 "g__", genus, "; ",
+                                                 "s__", species)) %>%
+                        mutate(taxonomy = str_remove(taxonomy, "; [a-z]__NA;"),
+                               taxonomy = str_remove(taxonomy, "; [a-z]__NA"),
+                               taxonomy = str_remove(taxonomy, "[a-z]__NA")) %>%
+                        select("#OTU ID", taxonomy, confidence)
+
+write_delim(tax_to_write, "data/processed/silva_taxonomy.tsv", delim = "\t")
+```
+
+
+
+```{bash}
+date
+
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/bin/bash
+#SBATCH --job-name=train_silva
+#SBATCH --workdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=80G
+#SBATCH -c 4
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --time=20-0
+
+hostname
+
+start=`date +%s`
+source activate qiime2-2020.2
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier data/reference/silva-132-99-nb-classifier.qza \
+  --i-reads data/qiime2/all_seqs.qza \
+  --p-n-jobs 4 \
+  --o-classification data/qiime2/silva_taxonomy.qza
+
+qiime metadata tabulate \
+  --m-input-file data/qiime2/silva_taxonomy.qza \
+  --o-visualization data/qiime2/silva_132_taxonomy.qzv
+  
+qiime taxa barplot \
+	--i-table data/qiime2/all_table.qza \
+	--i-taxonomy data/qiime2/silva_132_taxonomy.qza \
+	--m-metadata-file data/sample-metadata.tsv \
+	--o-visualization data/qiime2/silva_132_taxonomy.qzv
+  
+qiime tools export \
+  --input-path data/qiime2/silva_taxonomy.qza \
+  --output-path data/processed/silva_tax/
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+
+ENDSSH
+```
+
+
+## Make sequence alignment and phylogenetic tree using mafft and fastree
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+qiime alignment mafft \
+  --i-sequences data/qiime2/all_seqs.qza \
+  --o-alignment data/qiime2/all_aligned-rep-seqs.qza
+  
+qiime alignment mask \
+  --i-alignment data/qiime2/all_aligned-rep-seqs.qza \
+  --o-masked-alignment data/qiime2/all_masked-aligned-rep-seqs.qza
+  
+qiime phylogeny fasttree \
+  --i-alignment data/qiime2/all_masked-aligned-rep-seqs.qza \
+  --o-tree data/qiime2/all_unrooted-tree.qza
+  
+qiime phylogeny midpoint-root \
+  --i-tree data/qiime2/all_unrooted-tree.qza \
+  --o-rooted-tree data/qiime2/all_rooted-tree.qza
+
+qiime diversity alpha-rarefaction \
+  --i-table data/qiime2/all_table.qza \
+  --i-phylogeny data/qiime2/all_rooted-tree.qza \
+  --p-max-depth 4000 \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization data/qiime2/all_alpha-rarefaction.qzv  
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+##Export qiime2 files for further analysis 
+  -Further analysis in R and other programs.
+  -Includes creating collapsed tables and summary files
+
+```{bash}
+date
+start=`date +%s`
+
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+qiime tools export \
+  --input-path data/qiime2/all_table.qza \
+  --output-path data/processed/biom_tables/raw/
+
+#define the prefix for files generated here
+prefix=all_w_taxonomy
+
+biom add-metadata \
+  -i data/processed/biom_tables/raw/feature-table.biom \
+  -o data/processed/biom_tables/raw/${prefix}_table.biom \
+  --observation-metadata-fp data/processed/silva_taxonomy.tsv \
+  --observation-header "#OTU ID",taxonomy --sc-separated taxonomy
+
+
+biom convert \
+  --to-tsv \
+  -i data/processed/biom_tables/raw/${prefix}_table.biom \
+  -o data/processed/biom_tables/raw/${prefix}_table.tsv \
+  --header-key taxonomy
+
+source ~/miniconda2/bin/deactivate
+source ~/miniconda2/bin/activate qiime1
+
+summarize_taxa.py \
+  -i data/processed/biom_tables/raw/${prefix}_table.biom \
+  -o data/processed/biom_tables/raw/${prefix}_table_summary \
+  -m data/sample-metadata.tsv \
+  -L 2,3,4,5,6,7 \
+  --suppress_biom_table_output
+
+collapse_samples.py \
+  -b data/processed/biom_tables/raw/${prefix}_table.biom \
+  -m data/sample-metadata.tsv \
+  --output_biom_fp data/processed/biom_tables/raw/collapsed_${prefix}_table.biom \
+  --output_mapping_fp data/processed/biom_tables/raw/collapsed_mapfile_${prefix}.txt \
+  --collapse_mode sum \
+  --collapse_fields Description
+
+biom convert \
+  --to-tsv \
+  -i data/processed/biom_tables/raw/collapsed_${prefix}_table.biom \
+  -o data/processed/biom_tables/raw/collapsed_${prefix}_table.tsv \
+  --header-key taxonomy
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+##Determine contaminants in sequencing data based on alignment with known lab contaminant organisms
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+prefix=all_w_taxonomy
+
+#filter common lab contaminants
+
+qiime tools import \
+  --input-path data/processed/lab_contaminants_full.fasta \
+  --type 'FeatureData[Sequence]' \
+  --output-path data/processed/lab_contaminants.qza
+
+qiime quality-control exclude-seqs \
+  --i-query-sequences data/processed/biom_tables/raw/${prefix}_table.biom_seqs.qza \
+  --i-reference-sequences data/processed/lab_contaminants.qza \
+  --o-sequence-hits data/processed/${prefix}_lab_contaminants_table.qza \
+  --o-sequence-misses data/processed/${prefix}_non_contaminants_table.qza \
+  --p-perc-identity 0.99 \
+  --p-perc-query-aligned 0.99
+
+qiime tools export \
+  --input-path data/processed/${prefix}_lab_contaminants_table.qza \
+  --output-path data/processed/seqs_from_lab_contaminants
+
+awk 'sub(/^>/, "")' data/processed/seqs_from_lab_contaminants/dna-sequences.fasta > data/processed/lab_contaminant_seqs_in_concrete.txt
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+```{r}
+library(tidyverse)
+library(readr)
+
+lab_contaminant_seqs_in_concrete <- read.table("data/processed/lab_contaminant_seqs_in_concrete.txt", quote="\"", comment.char="") %>% select(otu_id = V1)
+
+taxonomy <- read.delim("data/processed/taxonomy.tsv") %>% select(otu_id = X.OTU.ID, taxonomy)
+
+contams_w_taxonomy <- left_join(lab_contaminant_seqs_in_concrete,taxonomy)
+
+```
+
+
+
+
+##Make decontaminated table
+
+```{bash}
+date
+start=`date +%s`
+
+source ~/miniconda2/bin/activate qiime1
+
+prefix=all_w_taxonomy
+
+#Filter out contaminants (make decontaminated table)
+filter_otus_from_otu_table.py \
+  -i data/processed/biom_tables/raw/${prefix}_table.biom \
+  -o data/processed/biom_tables/decontaminated/${prefix}_decontam_table2.biom \
+  -e data/processed/contaminants.txt
+
+#have to filter out a low coverage/highly contaminated sample
+filter_samples_from_otu_table.py \
+  -i data/processed/biom_tables/decontaminated/${prefix}_decontam_table2.biom \
+  -o data/processed/biom_tables/decontaminated/${prefix}_decontam_table.biom \
+  -n 150
+
+rm data/processed/biom_tables/decontaminated/${prefix}_decontam_table2.biom
+
+biom convert \
+  --to-tsv \
+  -i data/processed/biom_tables/decontaminated/${prefix}_decontam_table.biom \
+  -o data/processed/biom_tables/decontaminated/${prefix}_decontam_table.tsv \
+  --header-key taxonomy
+
+summarize_taxa.py \
+  -i data/processed/biom_tables/decontaminated/${prefix}_decontam_table.biom \
+  -o data/processed/biom_tables/decontaminated/${prefix}_decontam_table_summary \
+  -m data/sample-metadata.tsv -L 2,3,4,5,6,7 --suppress_biom_table_output
+
+collapse_samples.py \
+  -b data/processed/biom_tables/decontaminated/${prefix}_decontam_table.biom \
+  -m data/sample-metadata.tsv \
+  --output_biom_fp data/processed/biom_tables/decontaminated/collapsed_${prefix}_decontam_table.biom \
+  --output_mapping_fp data/processed/biom_tables/decontaminated/collapsed_mapfile_${prefix}_decontam.tsv \
+  --collapse_mode sum \
+  --collapse_fields Description
+
+biom convert \
+  --to-tsv \
+  -i data/processed/biom_tables/decontaminated/collapsed_${prefix}_decontam_table.biom \
+  -o data/processed/biom_tables/decontaminated/collapsed_${prefix}_decontam_table.tsv \
+  --header-key taxonomy
+  
+  
+#Filter out non-contaminants (make table of contaminants)  
+filter_otus_from_otu_table.py \
+  --negate_ids_to_exclude \
+  -i data/processed/biom_tables/raw/${prefix}_table.biom \
+  -o data/processed/biom_tables/contam_only/${prefix}_contam_table.biom \
+  -e data/processed/contaminants.txt
+
+biom convert \
+  --to-tsv \
+  -i data/processed/biom_tables/contam_only/${prefix}_contam_table.biom \
+  -o data/processed/biom_tables/contam_only/${prefix}_contam_table.tsv \
+  --header-key taxonomy
+
+summarize_taxa.py \
+  -i data/processed/biom_tables/contam_only/${prefix}_contam_table.biom \
+  -o data/processed/biom_tables/contam_only/${prefix}_contam_table_summary \
+  -m data/sample-metadata.tsv -L 2,3,4,5,6,7 --suppress_biom_table_output
+  
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+##Make normalized tables
+
+```{r message=FALSE, warning=FALSE}
+
+source("analysis/R/normalize_funcs.R")
+
+#to export proper tables
+#devtools::install_github("joey711/biomformat")
+
+system.time(
+{
+DESeq2_rlog_norm_qiime("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom","data/processed/biom_tables/decontaminated/deseq2_norm_all_decontam_table.biom")
+})
+
+system.time(
+{
+CSS_norm_qiime_counts("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom","data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.biom")
+})
+```
+
+
+Make various tables
+```{bash}
+date
+start=`date +%s`
+
+#cd /mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/qiime2
+source ~/miniconda2/bin/activate qiime1
+
+#add metadata back into the DESeq normalized table
+biom add-metadata \
+   -i data/processed/biom_tables/decontaminated/deseq2_norm_all_decontam_table.biom \
+   -o data/processed/biom_tables/decontaminated/deseq2_norm_all_w_taxonomy_decontam_table.biom \
+   --observation-metadata-fp data/processed/taxonomy.tsv \
+   --observation-header OTUID,taxonomy \
+   --sc-separated taxonomy
+
+biom add-metadata \
+   -i data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.biom \
+   -o data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.biom \
+   --observation-metadata-fp data/processed/taxonomy.tsv \
+   --observation-header OTUID,taxonomy \
+   --sc-separated taxonomy
+
+rm -f data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table2.biom
+
+#mv -f data/processed/biom_tables/decontaminated/deseq2_norm_all_decontam_table.biom data/processed/biom_tables/decontaminated/deseq2_norm_all_decontam_table.biom.backup
+
+
+#make summary, collapsed, and tsv css normalized biom tables
+
+source ~/miniconda2/bin/activate qiime2-2020.2
+   
+biom convert --to-tsv -i data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.biom -o data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.tsv --header-key taxonomy
+
+biom convert -i data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.tsv -o data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.biom --to-hdf5 --table-type="OTU table"
+
+source ~/miniconda2/bin/activate qiime1
+
+summarize_taxa.py -i data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.biom -o data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table_summary -m data/sample-metadata.tsv -L 2,3,4,5,6,7 --suppress_biom_table_output
+
+collapse_samples.py -b data/processed/biom_tables/decontaminated/css_norm_all_w_taxonomy_decontam_table.biom -m data/sample-metadata.tsv --output_biom_fp data/processed/biom_tables/decontaminated/collapsed_css_norm_all_w_taxonomy_decontam_table.biom --output_mapping_fp data/processed/biom_tables/decontaminated/collapsed_mapfile_css_norm_all_w_taxonomy_decontam_table.tsv --collapse_mode sum --collapse_fields Description
+
+biom convert --to-tsv -i data/processed/biom_tables/decontaminated/collapsed_css_norm_all_w_taxonomy_decontam_table.biom -o data/processed/biom_tables/decontaminated/collapsed_css_norm_all_w_taxonomy_decontam_table.tsv --header-key taxonomy
+
+
+#make sumamry, collapsed, and tsv deseq2 normalzied biom tables
+summarize_taxa.py -i data/processed/biom_tables/decontaminated/deseq2_norm_all_w_taxonomy_decontam_table.biom -o data/processed/biom_tables/decontaminated/deseq2_norm_all_w_taxonomy_decontam_table_summary -m data/sample-metadata.tsv -L 2,3,4,5,6,7 --suppress_biom_table_output
+
+collapse_samples.py -b data/processed/biom_tables/decontaminated/deseq2_norm_all_w_taxonomy_decontam_table.biom -m data/sample-metadata.tsv --output_biom_fp data/processed/biom_tables/decontaminated/collapsed_deseq2_norm_all_w_taxonomy_decontam_table.biom --output_mapping_fp data/processed/biom_tables/decontaminated/collapsed_mapfile_deseq2_norm_all_w_taxonomy_decontam_table.tsv --collapse_mode sum --collapse_fields Description
+
+biom convert --to-tsv -i data/processed/biom_tables/decontaminated/deseq2_norm_all_w_taxonomy_decontam_table.biom -o data/processed/biom_tables/decontaminated/deseq2_norm_all_w_taxonomy_decontam_table.tsv --header-key taxonomy
+
+biom convert --to-tsv -i data/processed/biom_tables/decontaminated/collapsed_deseq2_norm_all_w_taxonomy_decontam_table.biom -o data/processed/biom_tables/decontaminated/collapsed_deseq2_norm_all_w_taxonomy_decontam_table.tsv --header-key taxonomy
+
+
+##Make the concrete only tables
+
+#uncollapsed concrete tables
+N=5
+(
+while read file 
+do
+((i=i%N)); ((i++==0)) && wait
+
+    filter_samples_from_otu_table.py -i ${file} -o ${file}_concrete.biom  -m data/sample-metadata.tsv -s 'Concrete:Yes' &&
+    
+    mv ${file}_concrete.biom data/processed/biom_tables/concrete_only & 
+
+done < analysis/qiime2/bioms_for_q2.txt 
+wait
+)
+
+#collapsed concrete tables
+N=5
+(
+while read file 
+do
+((i=i%N)); ((i++==0)) && wait
+
+    filter_samples_from_otu_table.py -i ${file} -o ${file}_concrete.biom -m data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv -s 'Concrete:Yes' &&
+    
+    mv ${file}_concrete.biom data/processed/biom_tables/concrete_only &
+
+done < analysis/qiime2/collapsed_bioms_for_q2.txt 
+wait
+)
+
+#uncollapsed mitigated tables
+while read file 
+do
+    filter_samples_from_otu_table.py \
+      -i ${file} \
+      -o ${file}_mitigated_concrete.biom \
+      -m data/sample-metadata.tsv \
+      -s 'Mitigation_status:mitigated'
+    
+    mv ${file}_mitigated_concrete.biom data/processed/biom_tables/concrete_only
+
+done < analysis/qiime2/bioms_for_q2.txt 
+
+#uncollapsed unmitigated tables
+while read file 
+do
+    filter_samples_from_otu_table.py \
+      -i ${file} \
+      -o ${file}_unmitigated_concrete.biom \
+      -m data/sample-metadata.tsv \
+      -s 'Mitigation_status:unmitigated'
+    
+    mv ${file}_unmitigated_concrete.biom data/processed/biom_tables/concrete_only
+
+done < analysis/qiime2/bioms_for_q2.txt 
+
+#collapsed mitigated tables
+while read file 
+do
+    filter_samples_from_otu_table.py \
+      -i ${file} \
+      -o ${file}_mitigated_concrete.biom \
+      -m data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv -s 'Mitigation_status:mitigated'
+    
+    mv ${file}_mitigated_concrete.biom data/processed/biom_tables/concrete_only
+
+done < analysis/qiime2/collapsed_bioms_for_q2.txt 
+
+#collapsed unmitigated tables
+while read file 
+do
+    filter_samples_from_otu_table.py \
+      -i ${file} \
+      -o ${file}_unmitigated_concrete.biom \
+      -m data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv -s 'Mitigation_status:unmitigated'
+    
+    mv ${file}_unmitigated_concrete.biom data/processed/biom_tables/concrete_only
+
+done < analysis/qiime2/collapsed_bioms_for_q2.txt 
+
+
+cd data/processed/biom_tables/concrete_only/
+
+rm -rf collapsed_*
+
+for i in *.biom; do
+
+summarize_taxa.py -i ${i} -o ${i}_summary -m concrete_only-sample-metadata.txt -L 2,3,4,5,6,7 --suppress_biom_table_output
+
+collapse_samples.py -b ${i} -m ../../../sample-metadata.tsv --output_biom_fp collapsed_${i} --output_mapping_fp collapsed_mapfile_${i}.tsv --collapse_mode sum --collapse_fields Description
+
+biom convert --to-tsv -i ${i} -o ${i}.tsv --header-key taxonomy 
+
+done
+
+for i in collapsed_*.biom; do
+
+summarize_taxa.py -i ${i} -o ${i}_summary -m concrete_only-sample-metadata.txt -L 2,3,4,5,6,7 --suppress_biom_table_output
+
+biom convert --to-tsv -i ${i} -o ${i}.tsv --header-key taxonomy 
+
+done
+
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+Make qiime2 tables collapsed at specific tax ranks
+```{bash}
+date
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+find -type d -name *tax_collapsed_q2_tables -prune -exec rm -rf {} \;
+
+N=5
+(
+while read file 
+do
+((i=i%N)); ((i++==0)) && wait
+
+mkdir ${file}_tax_collapsed_q2_tables
+
+for i in {2..7}; do
+
+qiime taxa collapse \
+  --i-table ${file}_table.qza \
+  --i-taxonomy data/qiime2/silva_taxonomy.qza \
+  --o-collapsed-table ${file}_tax_collapsed_q2_tables/${i}.qza \
+  --p-level ${i}
+  
+done &
+  
+done < analysis/qiime2/normal_bioms.txt
+wait
+)
+```
+
+
+
+
+#Core diversity analyses
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+cd data/processed/biom_tables/
+
+find -type d -name *core-metrics-results -prune -exec rm -rf {} \;
+
+cd ../../../
+
+
+cd data/processed/biom_tables/concrete_only/
+find -type d -name '*.biom_concrete.biom-core-metrics-results' -prune -exec rm -rf {} \;
+
+cd ../../../../
+
+#for normal biom files
+cat analysis/qiime2/bioms_for_q2.txt >> cat analysis/qiime2/concrete_only_bioms.txt > analysis/qiime2/normal_bioms.txt
+
+N=4
+(
+while read file
+do
+
+((i=i%N)); ((i++==0)) && wait
+
+qiime tools import \
+  --input-path ${file} \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path ${file}_table.qza &&
+
+qiime feature-table filter-seqs \
+  --i-data data/qiime2/all_seqs.qza \
+  --i-table ${file}_table.qza \
+  --o-filtered-data ${file}_seqs.qza &&
+
+qiime feature-table summarize \
+  --i-table ${file}_table.qza \
+  --o-visualization ${file}_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv &&
+
+qiime feature-table tabulate-seqs \
+  --i-data ${file}_seqs.qza \
+  --o-visualization ${file}_seqs.qzv &&
+
+qiime taxa barplot \
+  --i-table ${file}_table.qza \
+  --i-taxonomy data/qiime2/all_taxonomy.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization  ${file}_taxonomy.qzv &&
+
+#qiime alignment mafft \
+#  --i-sequences ${file}_seqs.qza \
+#  --o-alignment ${file}_aligned_seqs.qza &&
+
+#qiime alignment mask \
+#  --i-alignment ${file}_aligned_seqs.qza \
+#  --o-masked-alignment ${file}_masked-aligned_seqs.qza &&
+  
+#qiime phylogeny fasttree \
+#  --i-alignment ${file}_masked-aligned_seqs.qza \
+#  --o-tree ${file}_unrooted-tree.qza &&
+  
+#qiime phylogeny midpoint-root \
+#  --i-tree ${file}_unrooted-tree.qza \
+#  --o-rooted-tree ${file}_rooted-tree.qza &&
+
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --i-table ${file}_table.qza \
+  --p-sampling-depth 1000 \
+  --m-metadata-file data/sample-metadata.tsv \
+  --output-dir ${file}-core-metrics-results &&
+  #--i-phylogeny ${file}_rooted-tree.qza \
+
+
+#Weighted normalized unifrac
+
+qiime diversity beta-phylogenetic \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --i-table ${file}-core-metrics-results/rarefied_table.qza \
+  --p-metric 'weighted_normalized_unifrac' \
+  --p-n-jobs 1 \
+  --o-distance-matrix ${file}-core-metrics-results/norm_weighted_unifrac_distance_matrix.qza &&
+
+qiime diversity pcoa \
+  --i-distance-matrix ${file}-core-metrics-results/norm_weighted_unifrac_distance_matrix.qza \
+  --o-pcoa ${file}-core-metrics-results/norm_weighted_unifrac_pcoa.qza &&
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/norm_weighted_unifrac_pcoa.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization ${file}-core-metrics-results/norm_weighted_unifrac_emperor.qzv &&
+
+#Generalized unifrac (0.5)
+
+qiime diversity beta-phylogenetic \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --i-table ${file}-core-metrics-results/rarefied_table.qza \
+  --p-metric 'generalized_unifrac' \
+  --p-alpha 0.5 \
+  --p-n-jobs 1 \
+  --o-distance-matrix ${file}-core-metrics-results/generalized_05_unifrac_distance_matrix.qza &&
+
+qiime diversity pcoa \
+  --i-distance-matrix ${file}-core-metrics-results/generalized_05_unifrac_distance_matrix.qza \
+  --o-pcoa ${file}-core-metrics-results/generalized_05_unifrac_pcoa.qza &&
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/generalized_05_unifrac_pcoa.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization ${file}-core-metrics-results/generalized_05_unifrac_emperor.qzv &&
+
+#Variance adjusted weighted unifrac
+
+qiime diversity beta-phylogenetic \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --i-table ${file}-core-metrics-results/rarefied_table.qza \
+  --p-metric 'weighted_unifrac' \
+  --p-variance-adjusted \
+  --p-n-jobs 1 \
+  --o-distance-matrix ${file}-core-metrics-results/varadj_weighted_unifrac_distance_matrix.qza &&
+
+qiime diversity pcoa \
+  --i-distance-matrix ${file}-core-metrics-results/varadj_weighted_unifrac_distance_matrix.qza \
+  --o-pcoa ${file}-core-metrics-results/varadj_weighted_unifrac_pcoa.qza &&
+
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/varadj_weighted_unifrac_pcoa.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization ${file}-core-metrics-results/varadj_weighted_unifrac_emperor.qzv &&
+
+
+#Make alpha group significance visualizations
+  
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity ${file}-core-metrics-results/faith_pd_vector.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization ${file}-core-metrics-results/faith-pd-group-significance.qzv &&
+
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity ${file}-core-metrics-results/evenness_vector.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization ${file}-core-metrics-results/evenness-group-significance.qzv &&
+
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity ${file}-core-metrics-results/shannon_vector.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization ${file}-core-metrics-results/shannon-group-significance.qzv &&
+  
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity ${file}-core-metrics-results/observed_otus_vector.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization ${file}-core-metrics-results/observed_otus-group-significance.qzv &&  
+
+#Make beta group significance visualizations
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --m-metadata-column Mitigation_status \
+  --o-visualization ${file}-core-metrics-results/unweighted-unifrac-mitigation_status_significance.qzv \
+  --p-pairwise &&
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --m-metadata-column Mitigation_status \
+  --o-visualization ${file}-core-metrics-results/weighted-unifrac-mitigation_status_significance.qzv \
+  --p-pairwise &&
+
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --m-metadata-column Mitigation_status_begin_end \
+  --o-visualization ${file}-core-metrics-results/unweighted-unifrac-subject-group-significance.qzv \
+  --p-pairwise &&
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --m-metadata-column Mitigation_status_begin_end \
+  --o-visualization ${file}-core-metrics-results/weighted-unifrac-subject-group-significance.qzv \
+  --p-pairwise &&
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --m-metadata-column Months_cat \
+  --o-visualization ${file}-core-metrics-results/unweighted-unifrac-months-group-significance.qzv \
+  --p-pairwise &&
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --m-metadata-column Months_cat \
+  --o-visualization ${file}-core-metrics-results/weighted-unifrac-months-group-significance.qzv \
+  --p-pairwise &&  
+
+#Make pcoa plots with months axis
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/unweighted_unifrac_pcoa_results.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --p-custom-axes Months \
+  --o-visualization ${file}-core-metrics-results/unweighted-unifrac-emperor-Months.qzv &&
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/weighted_unifrac_pcoa_results.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --p-custom-axes Months \
+  --o-visualization ${file}-core-metrics-results/weighted-unifrac-emperor-Months.qzv &&
+
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/bray_curtis_pcoa_results.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --p-custom-axes Months \
+  --o-visualization ${file}-core-metrics-results/bray-curtis-emperor-Months.qzv &&
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/jaccard_pcoa_results.qza \
+  --m-metadata-file data/sample-metadata.tsv \
+  --p-custom-axes Months \
+  --o-visualization ${file}-core-metrics-results/jaccard-emperor-Months.qzv &&
+
+#Make rarefaction curves  
+  
+qiime diversity alpha-rarefaction \
+  --i-table ${file}_table.qza \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --p-max-depth 1500 \
+  --m-metadata-file data/sample-metadata.tsv \
+  --o-visualization ${file}_alpha-rarefaction.qzv &&
+  #--i-phylogeny ${file}_rooted-tree.qza \
+
+#Make biplots
+
+qiime feature-table relative-frequency \
+  --i-table ${file}-core-metrics-results/rarefied_table.qza \
+  --o-relative-frequency-table ${file}-core-metrics-results/relative_frequency_table.qza &&
+  
+qiime diversity pcoa-biplot \
+  --i-pcoa ${file}-core-metrics-results/bray_curtis_pcoa_results.qza \
+  --i-features ${file}-core-metrics-results/relative_frequency_table.qza \
+  --o-biplot ${file}-core-metrics-results/bray_curtis_biplot_pcoa.qza &&
+  
+qiime emperor biplot \
+  --i-biplot ${file}-core-metrics-results/bray_curtis_biplot_pcoa.qza \
+  --m-sample-metadata-file data/sample-metadata.tsv \
+  --p-number-of-features 10 \
+  --o-visualization ${file}-core-metrics-results/bray_curtis_biplot_pcoa.qzv &&
+  
+qiime diversity pcoa-biplot \
+  --i-pcoa ${file}-core-metrics-results/unweighted_unifrac_pcoa_results.qza \
+  --i-features ${file}-core-metrics-results/relative_frequency_table.qza \
+  --o-biplot ${file}-core-metrics-results/unweighted_unifrac_biplot_pcoa.qza &&
+  
+qiime emperor biplot \
+  --i-biplot ${file}-core-metrics-results/unweighted_unifrac_biplot_pcoa.qza \
+  --m-sample-metadata-file data/sample-metadata.tsv \
+  --p-number-of-features 10 \
+  --o-visualization ${file}-core-metrics-results/unweighted_unifrac_biplot_pcoa.qzv &&  
+
+qiime diversity pcoa-biplot \
+  --i-pcoa ${file}-core-metrics-results/weighted_unifrac_pcoa_results.qza \
+  --i-features ${file}-core-metrics-results/relative_frequency_table.qza \
+  --o-biplot ${file}-core-metrics-results/weighted_unifrac_biplot_pcoa.qza &&
+  
+qiime emperor biplot \
+  --i-biplot ${file}-core-metrics-results/weighted_unifrac_biplot_pcoa.qza \
+  --m-sample-metadata-file data/sample-metadata.tsv \
+  --p-number-of-features 10 \
+  --o-visualization ${file}-core-metrics-results/weighted_unifrac_biplot_pcoa.qzv &
+
+done < analysis/qiime2/normal_bioms.txt
+wait
+)
+
+echo "Processed normal bioms"
+
+
+
+##For collapsed biom tables
+cat analysis/qiime2/collapsed_bioms_for_q2.txt >> cat analysis/qiime2/collapsed_concrete_only_bioms_for_q2.txt > analysis/qiime2/collapsed_bioms.txt
+#data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv
+
+N=4
+(
+while read file
+do
+
+((i=i%N)); ((i++==0)) && wait
+
+qiime tools import \
+  --input-path ${file} \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path ${file}_table.qza &&
+
+qiime feature-table filter-seqs \
+  --i-data data/qiime2/all_seqs.qza \
+  --i-table ${file}_table.qza \
+  --o-filtered-data ${file}_seqs.qza &&
+
+qiime feature-table summarize \
+  --i-table ${file}_table.qza \
+  --o-visualization ${file}_table.qzv \
+  --m-sample-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv &&
+
+qiime feature-table tabulate-seqs \
+  --i-data ${file}_seqs.qza \
+  --o-visualization ${file}_seqs.qzv &&
+
+qiime taxa barplot \
+  --i-table ${file}_table.qza \
+  --i-taxonomy data/qiime2/all_taxonomy.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv --o-visualization  ${file}_taxonomy.qzv &&
+
+#qiime alignment mafft \
+#  --i-sequences ${file}_seqs.qza \
+#  --o-alignment ${file}_aligned_seqs.qza &&
+
+#qiime alignment mask \
+#  --i-alignment ${file}_aligned_seqs.qza \
+#  --o-masked-alignment ${file}_masked-aligned_seqs.qza &&
+  
+#qiime phylogeny fasttree \
+#  --i-alignment ${file}_masked-aligned_seqs.qza \
+#  --o-tree ${file}_unrooted-tree.qza &&
+  
+#qiime phylogeny midpoint-root \
+#  --i-tree ${file}_unrooted-tree.qza \
+#  --o-rooted-tree ${file}_rooted-tree.qza &&
+
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --i-table ${file}_table.qza \
+  --p-sampling-depth 2000 \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --output-dir ${file}-core-metrics-results &&
+  #--i-phylogeny ${file}_rooted-tree.qza \
+  
+#Weighted normalized unifrac
+
+qiime diversity beta-phylogenetic \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --i-table ${file}-core-metrics-results/rarefied_table.qza \
+  --p-metric 'weighted_normalized_unifrac' \
+  --p-n-jobs 1 \
+  --o-distance-matrix ${file}-core-metrics-results/norm_weighted_unifrac_distance_matrix.qza &&
+
+qiime diversity pcoa \
+  --i-distance-matrix ${file}-core-metrics-results/norm_weighted_unifrac_distance_matrix.qza \
+  --o-pcoa ${file}-core-metrics-results/norm_weighted_unifrac_pcoa.qza &&
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/norm_weighted_unifrac_pcoa.qza \
+  --m-metadata-file data/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --o-visualization ${file}-core-metrics-results/norm_weighted_unifrac_emperor.qzv &&
+
+#Generalized unifrac (0.5)
+
+qiime diversity beta-phylogenetic \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --i-table ${file}-core-metrics-results/rarefied_table.qza \
+  --p-metric 'generalized_unifrac' \
+  --p-alpha 0.5 \
+  --p-n-jobs 5 \
+  --o-distance-matrix ${file}-core-metrics-results/generalized_05_unifrac_distance_matrix.qza &&
+
+qiime diversity pcoa \
+  --i-distance-matrix ${file}-core-metrics-results/generalized_05_unifrac_distance_matrix.qza \
+  --o-pcoa ${file}-core-metrics-results/generalized_05_unifrac_pcoa.qza &&
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/generalized_05_unifrac_pcoa.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --o-visualization ${file}-core-metrics-results/generalized_05_unifrac_emperor.qzv &&
+
+#Variance adjusted weighted unifrac
+
+qiime diversity beta-phylogenetic \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --i-table ${file}-core-metrics-results/rarefied_table.qza \
+  --p-metric 'weighted_unifrac' \
+  --p-variance-adjusted \
+  --p-n-jobs 5 \
+  --o-distance-matrix ${file}-core-metrics-results/varadj_weighted_unifrac_distance_matrix.qza &&
+
+qiime diversity pcoa \
+  --i-distance-matrix ${file}-core-metrics-results/varadj_weighted_unifrac_distance_matrix.qza \
+  --o-pcoa ${file}-core-metrics-results/varadj_weighted_unifrac_pcoa.qza &&
+
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/varadj_weighted_unifrac_pcoa.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --o-visualization ${file}-core-metrics-results/varadj_weighted_unifrac_emperor.qzv &&
+
+#Make alpha group significance visualizations
+  
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity ${file}-core-metrics-results/faith_pd_vector.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --o-visualization ${file}-core-metrics-results/faith-pd-group-significance.qzv &&
+
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity ${file}-core-metrics-results/evenness_vector.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --o-visualization ${file}-core-metrics-results/evenness-group-significance.qzv &&
+
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity ${file}-core-metrics-results/shannon_vector.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --o-visualization ${file}-core-metrics-results/shannon-group-significance.qzv &&
+  
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity ${file}-core-metrics-results/observed_otus_vector.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --o-visualization ${file}-core-metrics-results/observed_otus-group-significance.qzv &&  
+
+#Make beta group significance visualizations
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --m-metadata-column Mitigation_status \
+  --o-visualization ${file}-core-metrics-results/unweighted-unifrac-mitigation_status_significance.qzv \
+  --p-pairwise &&
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --m-metadata-column Mitigation_status \
+  --o-visualization ${file}-core-metrics-results/weighted-unifrac-mitigation_status_significance.qzv \
+  --p-pairwise &&
+
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --m-metadata-column Mitigation_status_begin_end \
+  --o-visualization ${file}-core-metrics-results/unweighted-unifrac-subject-group-significance.qzv \
+  --p-pairwise &&
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --m-metadata-column Mitigation_status_begin_end \
+  --o-visualization ${file}-core-metrics-results/weighted-unifrac-subject-group-significance.qzv \
+  --p-pairwise &&
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --m-metadata-column Months_cat \
+  --o-visualization ${file}-core-metrics-results/unweighted-unifrac-months-group-significance.qzv \
+  --p-pairwise &&
+  
+qiime diversity beta-group-significance \
+  --i-distance-matrix ${file}-core-metrics-results/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --m-metadata-column Months_cat \
+  --o-visualization ${file}-core-metrics-results/weighted-unifrac-months-group-significance.qzv \
+  --p-pairwise &&  
+
+#Make pcoa plots with months axis
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/unweighted_unifrac_pcoa_results.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --p-custom-axes Months \
+  --o-visualization ${file}-core-metrics-results/unweighted-unifrac-emperor-Months.qzv &&
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/weighted_unifrac_pcoa_results.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --p-custom-axes Months \
+  --o-visualization ${file}-core-metrics-results/weighted-unifrac-emperor-Months.qzv &&
+
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/bray_curtis_pcoa_results.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --p-custom-axes Months \
+  --o-visualization ${file}-core-metrics-results/bray-curtis-emperor-Months.qzv &&
+  
+qiime emperor plot \
+  --i-pcoa ${file}-core-metrics-results/jaccard_pcoa_results.qza \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --p-custom-axes Months \
+  --o-visualization ${file}-core-metrics-results/jaccard-emperor-Months.qzv &&
+
+#Make rarefaction curves  
+  
+qiime diversity alpha-rarefaction \
+  --i-table ${file}_table.qza \
+  --i-phylogeny data/qiime2/sepp_tree.qza \
+  --p-max-depth 3000 \
+  --m-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --o-visualization ${file}_alpha-rarefaction.qzv &&
+  #--i-phylogeny ${file}_rooted-tree.qza \
+    
+#Make biplots
+
+qiime feature-table relative-frequency \
+  --i-table ${file}-core-metrics-results/rarefied_table.qza \
+  --o-relative-frequency-table ${file}-core-metrics-results/relative_frequency_table.qza &&
+  
+qiime diversity pcoa-biplot \
+  --i-pcoa ${file}-core-metrics-results/bray_curtis_pcoa_results.qza \
+  --i-features ${file}-core-metrics-results/relative_frequency_table.qza \
+  --o-biplot ${file}-core-metrics-results/bray_curtis_biplot_pcoa.qza &&
+  
+qiime emperor biplot \
+  --i-biplot ${file}-core-metrics-results/bray_curtis_biplot_pcoa.qza \
+  --m-sample-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --p-number-of-features 10 \
+  --o-visualization ${file}-core-metrics-results/bray_curtis_biplot_pcoa.qzv &&
+  
+qiime diversity pcoa-biplot \
+  --i-pcoa ${file}-core-metrics-results/unweighted_unifrac_pcoa_results.qza \
+  --i-features ${file}-core-metrics-results/relative_frequency_table.qza \
+  --o-biplot ${file}-core-metrics-results/unweighted_unifrac_biplot_pcoa.qza &&
+  
+qiime emperor biplot \
+  --i-biplot ${file}-core-metrics-results/unweighted_unifrac_biplot_pcoa.qza \
+  --m-sample-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --p-number-of-features 10 \
+  --o-visualization ${file}-core-metrics-results/unweighted_unifrac_biplot_pcoa.qzv &&  
+
+qiime diversity pcoa-biplot \
+  --i-pcoa ${file}-core-metrics-results/weighted_unifrac_pcoa_results.qza \
+  --i-features ${file}-core-metrics-results/relative_frequency_table.qza \
+  --o-biplot ${file}-core-metrics-results/weighted_unifrac_biplot_pcoa.qza &&
+  
+qiime emperor biplot \
+  --i-biplot ${file}-core-metrics-results/weighted_unifrac_biplot_pcoa.qza \
+  --m-sample-metadata-file data/processed/biom_tables/decontaminated/collapsed_mapfile_all_w_taxonomy_decontam.tsv \
+  --p-number-of-features 10 \
+  --o-visualization ${file}-core-metrics-results/weighted_unifrac_biplot_pcoa.qzv &
+
+done < analysis/qiime2/collapsed_bioms.txt
+wait
+)
+
+echo "Processed collapsed_bioms"
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
