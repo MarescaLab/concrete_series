@@ -26,10 +26,10 @@ Figures and tables from the paper which can be reproduced by running the noteboo
 
 Running this analysis requires R. The following python tools are also required:
 
-* qiime2
-* SourceTracker2
-* fastspar
+* [Qiime2](https://docs.qiime2.org/2020.2/install/)
+* [SourceTracker2](https://github.com/biota/sourcetracker2)
+* [fastspar](https://github.com/scwatts/fastspar)
 
 #### Running
 
-Several steps are quite computationally expensive, and use of an HPC is strongly suggested.
+Several steps are quite computationally expensive and use of an HPC is strongly suggested.
