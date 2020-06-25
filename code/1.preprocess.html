@@ -814,13 +814,13 @@ tictoc::toc()</code></pre>
 <pre class="r"><code>cutFs &lt;- sort(list.files(path.cut, pattern = &quot;L001_R1_001.fastq.gz&quot;, full.names = TRUE))
 cutRs &lt;- sort(list.files(path.cut, pattern = &quot;L001_R2_001.fastq.gz&quot;, full.names = TRUE))</code></pre>
 <p>Get sample names</p>
-<pre class="r"><code>get.sample.name &lt;- function(fname) strsplit(basename(fname), &quot;_\\d*_S&quot;)[[1]][1]
+<pre class="r"><code>get.sample.name &lt;- function(fname) strsplit(basename(fname), &quot;*_S&quot;)[[1]][1]
 sample.names.f &lt;- unname(sapply(cutFs, get.sample.name))
 sample.names.r &lt;- unname(sapply(cutRs, get.sample.name))
 head(sample.names.f)</code></pre>
-<pre><code>## [1] &quot;021715M&quot; &quot;021715M&quot; &quot;021715M&quot; &quot;021715U&quot; &quot;021715U&quot; &quot;021715U&quot;</code></pre>
+<pre><code>## [1] &quot;021715M_2&quot; &quot;021715M_5&quot; &quot;021715M_6&quot; &quot;021715U_0&quot; &quot;021715U_6&quot; &quot;021715U_7&quot;</code></pre>
 <pre class="r"><code>head(sample.names.r)</code></pre>
-<pre><code>## [1] &quot;021715M&quot; &quot;021715M&quot; &quot;021715M&quot; &quot;021715U&quot; &quot;021715U&quot; &quot;021715U&quot;</code></pre>
+<pre><code>## [1] &quot;021715M_2&quot; &quot;021715M_5&quot; &quot;021715M_6&quot; &quot;021715U_0&quot; &quot;021715U_6&quot; &quot;021715U_7&quot;</code></pre>
 </div>
 <div id="examine-read-quality" class="section level2">
 <h2>Examine read quality</h2>
