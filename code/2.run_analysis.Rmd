@@ -1,19 +1,42 @@
 ---
-title: "Analysis driver"
+title: "Run analysis"
 author: "Anders Kiledal"
 date: "May 8, 2018"
-output: pdf_document
+output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir = "D:/Google Drive/Documents/UDel/Research/Concrete_analysis/")
+```{r setup}
+knitr::opts_knit$set(root.dir = here::here())
+
+library(tidyverse)
 ```
 
 
-#Initial sequence processing:
+## Initial sequence processing:
   -make demux file
   -run DADA2 to make the ASV table and rep_seq files
-  -can be run using this code, takes ~1hr on decent laptop, less on bimiox
+  -can be run using this code, takes ~1hr on decent laptop, less on biomix
+  
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#Import the reads with primers removed by cutadapt into qiime2
+qiime tools import \
+  --type 'SampleData[PairedEndSequencesWithQuality]' \
+  --input-path data/manifest.txt \
+  --output-path data/qiime2/dada2_filt_paired-end-demux.qza \
+  --input-format PairedEndFastqManifestPhred33
+  
+#Make Q2 read summary vis.
+qiime demux summarize \
+  --i-data data/qiime2/dada2_filt_paired-end-demux.qza \
+  --o-visualization data/qiime2/dada2_filt_paired-end-demux.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
   
 ```{bash}
 date
@@ -21,9 +44,9 @@ start=`date +%s`
 source ~/miniconda2/bin/activate qiime2-2020.2
 
 #Make visualization about the sequence data
-#qiime demux summarize \
-#  --i-data data/qiime2/dada2_filt_paired-end-demux.qza \
-#  --o-visualization data/qiime2/dada2_filt_paired-end-demux.qzv
+qiime demux summarize \
+  --i-data data/qiime2/dada2_filt_paired-end-demux.qza \
+  --o-visualization data/qiime2/dada2_filt_paired-end-demux.qzv
 
 #Denoise the sequence data, determine representative sequence varients, and make ASV table
 qiime dada2 denoise-paired \
@@ -60,7 +83,7 @@ qiime feature-table tabulate-seqs \
 echo "Duration: $((($(date +%s)-$start)/60)) minutes"
 ```
 
-## Filter out sequences of unexpected length, reduces unexpectedly large branch lengths in tree based on sequence alignment
+### Filter out sequences of unexpected length, reduces unexpectedly large branch lengths in tree based on sequence alignment
 ```{bash}
 date
 start=`date +%s`
@@ -364,8 +387,6 @@ echo "Duration: $((($(date +%s)-$start)/60)) minutes"
 
 Make the silva taxonomy have the same format as greengenes to aid in parsing
 ```{r}
-library(tidyverse)
-
 tax_ranks <- c("kingdom","phylum","class","order","family","genus","species")
 tax <- read_delim("data/processed/silva_tax/taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
   mutate(for_split = taxonomy) %>% 
@@ -557,9 +578,6 @@ echo "Duration: $((($(date +%s)-$start)/60)) minutes"
 
 
 ```{r}
-library(tidyverse)
-library(readr)
-
 lab_contaminant_seqs_in_concrete <- read.table("data/processed/lab_contaminant_seqs_in_concrete.txt", quote="\"", comment.char="") %>% select(otu_id = V1)
 
 taxonomy <- read.delim("data/processed/taxonomy.tsv") %>% select(otu_id = X.OTU.ID, taxonomy)
