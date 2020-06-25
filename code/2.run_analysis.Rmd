@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup}
 knitr::opts_knit$set(root.dir = here::here())
+knitr::opts_chunk$set(cache = TRUE)
 
 library(tidyverse)
 ```
@@ -123,12 +124,12 @@ start=`date +%s`
 
 source ~/miniconda2/bin/activate qiime2-2020.2
 
-#qiime fragment-insertion sepp \
-#  --i-representative-sequences data/qiime2/pre_sepp_seqs.qza \
-#  --i-reference-database data/reference/sepp-refs-silva-128.qza \
-#  --p-threads 1 \
-#  --o-tree data/qiime2/sepp_tree.qza \
-#  --o-placements data/qiime2/sepp_placements.qza
+qiime fragment-insertion sepp \
+  --i-representative-sequences data/qiime2/pre_sepp_seqs.qza \
+  --i-reference-database data/reference/sepp-refs-silva-128.qza \
+  --p-threads 1 \
+  --o-tree data/qiime2/sepp_tree.qza \
+  --o-placements data/qiime2/sepp_placements.qza
 
 qiime fragment-insertion filter-features \
   --i-table data/qiime2/pre_sepp_table.qza \
@@ -159,7 +160,7 @@ qiime feature-table tabulate-seqs \
 echo "Duration: $((($(date +%s)-$start)/60)) minutes"
 ```
 
-```{bash}
+```{bash, eval = FALSE}
 date
 
 ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
@@ -216,7 +217,7 @@ ENDSSH
 ```
 
 
-Make a clustered table
+Make a clustered table for comparison, not used in paper analysis
 ```{bash}
 date
 start=`date +%s`
@@ -258,106 +259,11 @@ echo "Duration: $((($(date +%s)-$start)/60)) minutes"
 
 
 
-## Train the greengenes taxonomy classifier
-(only has to be run once)
-
+## Classify taxonomy using SILVA, can be a memory hog, better to run on biomix (next chunk)
 ```{bash}
 date
 start=`date +%s`
 source ~/miniconda2/bin/activate qiime2-2020.2
-
-#reference taxonomy is greengenes 99_otus, timmed to the region targeted by the 357f and 806r primers, previously imported into qiime2
-
-qiime feature-classifier fit-classifier-naive-bayes \
-  --i-reference-reads data/qiime2/ref-seqs.qza \
-  --i-reference-taxonomy data/qiime2/ref-taxonomy.qza \
-  --o-classifier data/qiime2/classifier.qza
-
-echo "Duration: $((($(date +%s)-$start)/60)) minutes"
-```
-
-
-
-##Run the greengenes taxonomy classifier trained above
-(only has to be run once)
-```{bash}
-date
-start=`date +%s`
-source ~/miniconda2/bin/activate qiime2-2020.2
-
-qiime feature-classifier classify-sklearn \
-  --i-classifier data/qiime2/classifier.qza \
-  --i-reads data/qiime2/all_seqs.qza \
-  --o-classification data/qiime2/all_taxonomy.qza
-
-qiime metadata tabulate \
-  --m-input-file data/qiime2/all_taxonomy.qza \
-  --o-visualization data/qiime2/all_taxonomy.qzv
-
-qiime taxa barplot \
-  --i-table data/qiime2/all_table.qza \
-  --i-taxonomy data/qiime2/all_taxonomy.qza \
-  --m-metadata-file data/sample-metadata.tsv \
-  --o-visualization data/qiime2/all_taxa-bar-plots.qzv
-
-qiime tools export \
-  --input-path data/qiime2/all_taxonomy.qza \
-  --output-path data/processed/
-
-new_header='#OTU ID\ttaxonomy\tconfidence'
-sed -i "1 s/^.*$/$new_header/" data/processed/taxonomy.tsv
-
-echo "Duration: $((($(date +%s)-$start)/60)) minutes"
-```
-
-
-## Test the new (>= qiime2-2020.2) hybrid taxonomy classifier
-```{bash}
-date
-start=`date +%s`
-source ~/miniconda2/bin/activate qiime2-2020.2
-
-qiime feature-classifier classify-hybrid-vsearch-sklearn \
-  --i-query data/qiime2/all_seqs.qza \
-  --i-reference-reads data/reference/silva_132_full_99_ref_seqs.qza \
-  --i-reference-taxonomy data/reference/silva_132_ref-taxonomy.qza \
-  --i-classifier data/reference/silva-132-99-nb-classifier.qza \
-  --p-threads 4 \
-  --p-no-prefilter \
-  --o-classification data/qiime2/hybrid_taxonomy.qza
-
-qiime tools export \
-  --input-path data/qiime2/hybrid_taxonomy.qza \
-  --output-path data/processed/hybrid_tax/
-  
-
-echo "Duration: $((($(date +%s)-$start)/60)) minutes"
-```
-
-
-## Classify taxonomy using SILVA, can be a memory hog, better to run on biomix
-```{bash}
-date
-start=`date +%s`
-source ~/miniconda2/bin/activate qiime2-2020.2
-
-#qiime feature-classifier classify-sklearn \
-#  --i-classifier data/qiime2/silva-132-99-nb-classifier.qza \
-#  --i-reads data/qiime2/all_seqs.qza \
-#  --p-n-jobs 1 \
-#  --o-classification data/qiime2/silva_taxonomy.qza
-
-#qiime feature-classifier extract-reads \
-#  --i-sequences data/reference/silva_132_full_99_ref_seqs.qza \
-#  --p-f-primer CTCCTACGGGAGGCAGCAG \
-#  --p-r-primer GGACTACNVGGGTWTCTAAT \
-#  --p-identity 0.9 \
-#  --o-reads data/reference/silva_132_357f_806r_ref-seqs.qza
-  
-#qiime feature-classifier fit-classifier-naive-bayes \
-#  --i-reference-reads data/reference/silva_132_357f_806r_ref-seqs.qza \
-#  --i-reference-taxonomy data/reference/silva_132_ref-taxonomy.qza \
-#  --o-classifier data/reference/silva_132_357f_806r_classifier.qza
 
 qiime feature-classifier classify-sklearn \
   --i-classifier data/reference/silva-132-99-nb-classifier.qza \
@@ -385,32 +291,8 @@ sed -i "1 s/^.*$/$new_header/" data/processed/silva_tax/taxonomy.tsv
 echo "Duration: $((($(date +%s)-$start)/60)) minutes"
 ```
 
-Make the silva taxonomy have the same format as greengenes to aid in parsing
-```{r}
-tax_ranks <- c("kingdom","phylum","class","order","family","genus","species")
-tax <- read_delim("data/processed/silva_tax/taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
-  mutate(for_split = taxonomy) %>% 
-  separate(for_split,tax_ranks,sep = ";") %>% 
-  mutate_at(tax_ranks,str_remove,pattern = "D_[0-9]__")
 
-tax_to_write <- tax %>% mutate(taxonomy = paste0("k__", kingdom,"; ",
-                                                 "p__", phylum,"; ",
-                                                 "c__", class, "; ",
-                                                 "o__", order, "; ",
-                                                 "f__", family, "; ",
-                                                 "g__", genus, "; ",
-                                                 "s__", species)) %>%
-                        mutate(taxonomy = str_remove(taxonomy, "; [a-z]__NA;"),
-                               taxonomy = str_remove(taxonomy, "; [a-z]__NA"),
-                               taxonomy = str_remove(taxonomy, "[a-z]__NA")) %>%
-                        select("#OTU ID", taxonomy, confidence)
-
-write_delim(tax_to_write, "data/processed/silva_taxonomy.tsv", delim = "\t")
-```
-
-
-
-```{bash}
+```{bash, eval = FALSE}
 date
 
 ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
@@ -454,39 +336,31 @@ ENDSSH
 ```
 
 
-## Make sequence alignment and phylogenetic tree using mafft and fastree
-```{bash}
-date
-start=`date +%s`
-source ~/miniconda2/bin/activate qiime2-2020.2
+Make the silva taxonomy have the same format as greengenes to aid in parsing
+```{r}
+tax_ranks <- c("kingdom","phylum","class","order","family","genus","species")
+tax <- read_delim("data/processed/silva_tax/taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  mutate(for_split = taxonomy) %>% 
+  separate(for_split,tax_ranks,sep = ";") %>% 
+  mutate_at(tax_ranks,str_remove,pattern = "D_[0-9]__")
 
-qiime alignment mafft \
-  --i-sequences data/qiime2/all_seqs.qza \
-  --o-alignment data/qiime2/all_aligned-rep-seqs.qza
-  
-qiime alignment mask \
-  --i-alignment data/qiime2/all_aligned-rep-seqs.qza \
-  --o-masked-alignment data/qiime2/all_masked-aligned-rep-seqs.qza
-  
-qiime phylogeny fasttree \
-  --i-alignment data/qiime2/all_masked-aligned-rep-seqs.qza \
-  --o-tree data/qiime2/all_unrooted-tree.qza
-  
-qiime phylogeny midpoint-root \
-  --i-tree data/qiime2/all_unrooted-tree.qza \
-  --o-rooted-tree data/qiime2/all_rooted-tree.qza
+tax_to_write <- tax %>% mutate(taxonomy = paste0("k__", kingdom,"; ",
+                                                 "p__", phylum,"; ",
+                                                 "c__", class, "; ",
+                                                 "o__", order, "; ",
+                                                 "f__", family, "; ",
+                                                 "g__", genus, "; ",
+                                                 "s__", species)) %>%
+                        mutate(taxonomy = str_remove(taxonomy, "; [a-z]__NA;"),
+                               taxonomy = str_remove(taxonomy, "; [a-z]__NA"),
+                               taxonomy = str_remove(taxonomy, "[a-z]__NA")) %>%
+                        select("#OTU ID", taxonomy, confidence)
 
-qiime diversity alpha-rarefaction \
-  --i-table data/qiime2/all_table.qza \
-  --i-phylogeny data/qiime2/all_rooted-tree.qza \
-  --p-max-depth 4000 \
-  --m-metadata-file data/sample-metadata.tsv \
-  --o-visualization data/qiime2/all_alpha-rarefaction.qzv  
-
-echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+write_delim(tax_to_write, "data/processed/silva_taxonomy.tsv", delim = "\t")
 ```
 
-##Export qiime2 files for further analysis 
+
+## Export qiime2 files for further analysis 
   -Further analysis in R and other programs.
   -Includes creating collapsed tables and summary files
 
@@ -583,7 +457,6 @@ lab_contaminant_seqs_in_concrete <- read.table("data/processed/lab_contaminant_s
 taxonomy <- read.delim("data/processed/taxonomy.tsv") %>% select(otu_id = X.OTU.ID, taxonomy)
 
 contams_w_taxonomy <- left_join(lab_contaminant_seqs_in_concrete,taxonomy)
-
 ```
 
 
@@ -639,7 +512,7 @@ biom convert \
   --header-key taxonomy
   
   
-#Filter out non-contaminants (make table of contaminants)  
+#Filter out non-contaminants (make table of contaminants only)  
 filter_otus_from_otu_table.py \
   --negate_ids_to_exclude \
   -i data/processed/biom_tables/raw/${prefix}_table.biom \
@@ -661,7 +534,7 @@ echo "Duration: $((($(date +%s)-$start)/60)) minutes"
 ```
 
 
-##Make normalized tables
+## Make normalized tables (not actually used in the paper analysis)
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -682,7 +555,7 @@ CSS_norm_qiime_counts("data/processed/biom_tables/decontaminated/all_w_taxonomy_
 ```
 
 
-Make various tables
+Make/export various tables
 ```{bash}
 date
 start=`date +%s`
@@ -847,7 +720,7 @@ echo "Duration: $((($(date +%s)-$start)/60)) minutes"
 ```
 
 
-Make qiime2 tables collapsed at specific tax ranks
+## Make qiime2 tables collapsed at specific tax ranks
 ```{bash}
 date
 source ~/miniconda2/bin/activate qiime2-2020.2
