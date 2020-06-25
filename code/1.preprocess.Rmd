@@ -156,7 +156,7 @@ cutRs <- sort(list.files(path.cut, pattern = "L001_R2_001.fastq.gz", full.names 
 
 Get sample names
 ```{r, cache=TRUE}
-get.sample.name <- function(fname) strsplit(basename(fname), "_\\d*_S")[[1]][1]
+get.sample.name <- function(fname) strsplit(basename(fname), "*_S")[[1]][1]
 sample.names.f <- unname(sapply(cutFs, get.sample.name))
 sample.names.r <- unname(sapply(cutRs, get.sample.name))
 head(sample.names.f)
