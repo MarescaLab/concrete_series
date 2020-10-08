@@ -1,0 +1,1865 @@
+---
+title: "make_figures"
+author: "Anders Kiledal"
+date: "10/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = here::here())
+```
+
+This document produces all the figures used in the concrete cylinder series paper. References are made to where they were previously made, allowing more context to be see and data processing steps that are not included here.
+
+## Figure 1: overview of concrete cylinder series
+
+The final version of this figure is output here.
+
+```{r}
+library(patchwork)
+library(tidyverse)
+library(magick)
+library(lubridate)
+library(scales)
+library(ggpubr)
+
+metadata <- read_delim("data/sample-metadata.tsv","\t") %>%
+  mutate(Collected = mdy(Collected),
+         dna_yield = num_conc * 25)
+
+(concrete_dna_conc <- metadata %>% filter(Type == "Concrete") %>%
+  ggplot(aes(Collected,dna_yield, color = ASR, shape = ASR)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  theme_minimal() +
+  labs(x = NULL,
+       y= "DNA yield (ng)",
+       color = "ASR status") +
+  scale_x_date(labels=date_format("%b '%y"), 
+               date_breaks = "3 months",
+               limits = c(min(metadata %>% filter(Type == "Concrete") %>% pull(Collected)) - days(30), 
+                          max(metadata %>% filter(Type == "Concrete") %>% pull(Collected)))) +
+  scale_shape_manual(values=c(17, 21), name = "ASR") +
+  scale_color_manual(values = c("darkorange2","grey40"), name = "ASR") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), 
+        legend.position = c(.2, .8),
+        legend.title = element_blank())
+  )
+
+(series_temp <- metadata %>% filter(Type == "Concrete") %>%
+  ggplot(aes(Collected, temp_avg)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = NULL,
+       y= "Temperature (°F)",
+       color = "ASR status") +
+  scale_x_date(labels=date_format("%b '%y"), 
+               date_breaks = "3 months",
+               limits = c(min(metadata %>% filter(Type == "Concrete") %>% pull(Collected) - days(30)), 
+                          max(metadata %>% filter(Type == "Concrete") %>% pull(Collected)))) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+    lims(y = c(20,80))
+    #geom_errorbarh(aes(xmin = Collected - days(30), xmax = Collected), alpha = 0.1) +
+    #theme(axis.title.x=element_blank(),
+    #  axis.text.x=element_blank(),
+    #  axis.ticks.x=element_blank())
+  )
+
+
+(precursor_dna_conc <- metadata %>%
+  ggplot(aes(Type,dna_yield)) +
+  geom_boxplot(outlier.alpha = 0) +
+  geom_jitter(width = 0.1, alpha = 0.2) +
+  #scale_y_log10() +
+  theme_minimal() +
+  labs(x = NULL,
+       y= "DNA yield (ng)",
+       color = "ASR status") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  )
+
+# (a) is an image produced in illustrator, which must be read in
+series_image <- image_read("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/Cylinder Series_embedded_updated.png")
+series_summary <- grid::rasterGrob(series_image)
+
+layout <- "
+AB
+CD
+"
+
+wrap_plots(series_summary, series_temp, precursor_dna_conc, concrete_dna_conc) + 
+  plot_layout(design = layout) + 
+  plot_annotation(tag_levels = "a") + 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig1_Cylinder_Series_overview.pdf", 
+         device = cairo_pdf, width = 6, height = 3.75,dpi = 600, scale = 1.5) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig1_Cylinder_Series_overview.eps", 
+         device=cairo_ps, fallback_resolution = 600, width = 6, height = 3.75, dpi = 600, scale = 1.5) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig1_Cylinder_Series_overview.png", 
+         type = "cairo",  width = 6, height = 3.75,dpi = 600, scale = 1.5)
+
+```
+
+## Figure 2: Contaminant taxa composition and relative abundance
+
+After being output here, this figure is tweaked in Illustrator to change the format of the legend.
+
+```{r}
+library(tidyverse)
+library(qiime2R)
+library(metacoder)
+
+contaminants <- read_csv("data/processed/contaminants.txt", col_names = FALSE)
+
+otu_mat <- qiime2R::read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_table.biom_concrete.biom_table.qza")$data %>% 
+              as.data.frame() %>% 
+              mutate(otu_id = rownames(.)) %>% 
+              filter(otu_id %in% contaminants$X1)
+
+taxonomy <- qiime2R::read_qza("data/qiime2/silva_taxonomy.qza") %>% .$data %>% 
+              as.data.frame() %>% 
+              mutate(otu_id = .$Feature.ID,lineage= .$Taxon) %>% 
+              select(otu_id,lineage)
+
+met_samples <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+              select(sample_id = `#SampleID`,everything()) %>% 
+              filter(sample_id %in% colnames(otu_mat))
+
+met_otus <- otu_mat %>% left_join(taxonomy) %>% 
+              select(otu_id,lineage,everything()) %>% 
+              filter(!is.na(lineage),lineage!="Unassigned")
+
+#Make the MetaCodeR obj
+obj <- parse_tax_data(met_otus, class_cols = "lineage", class_sep = ";",
+                      class_key = c(tax_rank = "info", tax_name = "taxon_name"),
+                      class_regex = "^(.+)__(.*)$")
+
+#removing low abundance OTUs
+#obj$data$tax_data <- zero_low_counts(obj, "tax_data", min_count = 100)
+
+no_reads <- rowSums(obj$data$tax_data[, met_samples$sample_id]) == 0
+sum(no_reads)
+
+#filtering otus with no reads
+obj <- filter_obs(obj, "tax_data", ! no_reads, drop_taxa = TRUE)
+
+
+#summing per-taxon counts
+obj$data$rel_abd <- calc_obs_props(obj, "tax_data", other_cols = T)
+
+obj$data$tax_abund <- calc_taxon_abund(obj, "rel_abd",
+                                       cols = met_samples$sample_id,
+                                       groups = met_samples$Type)
+
+#To get in final relative abundance form
+obj$data$tax_abund$Concrete <- obj$data$tax_abund$Concrete / obj$data$tax_abund$Concrete[1]
+
+#Make the heat tree
+obj %>%
+taxa::filter_taxa(Concrete > 0.001) %>% #filter to only plot taxa w/ rel.abund > 0.001
+heat_tree(node_label = taxon_names,
+          node_size = Concrete,
+          node_size_range = c(0.002,0.05),
+          node_label_size_range = c(.015,.025),
+          node_size_axis_label = "OTU count",
+          initial_layout = "reingold-tilford", layout = "davidson-harel",
+          overlap_avoidance = 10,
+          node_label_max = 60 ,
+          node_color = Concrete,
+          node_color_range = c("gray80","gray80","gray80"),
+          node_color_axis_label = "Relative abundance") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig2_contaminants_overview.pdf", 
+         device = cairo_pdf, width = 12, height = 12, dpi = 600) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig2_contaminants_overview.eps", 
+         device=cairo_ps, fallback_resolution = 600, width = 12, height = 12, dpi = 600) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig2_contaminants_overview.png", 
+         type = "cairo", dpi = 600, width = 12, height = 12)
+
+```
+
+## Figure 3: Concrete bacterial community relative abundance
+
+After being output here, this figure is tweaked in Illustrator to change the format of the legend.
+
+```{r}
+library(tidyverse)
+library(qiime2R)
+library(metacoder)
+
+otu_mat <- qiime2R::read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom_table.qza")$data %>%
+  as.data.frame() %>% 
+  mutate(otu_id = rownames(.)) 
+
+taxonomy <- qiime2R::read_qza("data/qiime2/silva_taxonomy.qza")$data %>% 
+  as.data.frame() %>% 
+  mutate(otu_id = .$Feature.ID,lineage= .$Taxon) %>% 
+  dplyr::select(otu_id,lineage)
+
+met_samples <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  dplyr::select(sample_id = `#SampleID`,everything()) %>% 
+  filter(sample_id %in% colnames(otu_mat))
+
+
+met_otus <- otu_mat %>% left_join(taxonomy) %>% dplyr::select(otu_id,lineage,one_of(met_samples$sample_id)) %>% 
+              filter(!is.na(lineage),lineage!="Unassigned")
+
+#Make the MetaCodeR obj
+  ##Greengenes class_regex = "^(.+)__(.*)$"
+  ##SILVA class_regex = "^D_(.+)__(.*)$"  
+
+obj <- parse_tax_data(met_otus, class_cols = "lineage", class_sep = ";",
+                      class_key = c(tax_rank = "info", tax_name = "taxon_name"),
+                      class_regex = "^D_(.+)__(.*)$")
+
+#removing low abundance OTUs
+#obj$data$tax_data <- zero_low_counts(obj, "tax_data", min_count = 300)
+
+no_reads <- rowSums(obj$data$tax_data[, met_samples$sample_id]) == 0
+sum(no_reads)
+
+#filtering otus with no reads
+obj <- filter_obs(obj, "tax_data", ! no_reads, drop_taxa = TRUE)
+
+## Calculate relative abundance
+obj$data$rel_abd <- calc_obs_props(obj, "tax_data", other_cols = T)
+
+#summing per-taxon counts
+obj$data$tax_abund <- calc_taxon_abund(obj, "rel_abd",
+                                       cols = met_samples$sample_id,
+                                       groups = met_samples$Type)
+
+#To get in final relative abundance form
+obj$data$tax_abund$Concrete <- obj$data$tax_abund$Concrete / obj$data$tax_abund$Concrete[1]
+
+#Make the heat tree
+obj %>%
+taxa::filter_taxa(Concrete > 0.001) %>%
+heat_tree(node_label = taxon_names,
+          node_size = Concrete,
+          node_size_trans = "area",
+          node_size_range = c(0.002,0.05),
+          node_label_size_range = c(.015,.025),
+          node_size_axis_label = "OTU count",
+          initial_layout = "reingold-tilford", 
+          layout = "davidson-harel",
+          #layout = "automatic",
+          overlap_avoidance = 2,
+          repel_force = 10,
+          node_label_max = 80 ,
+          node_color = Concrete,
+          node_color_range = c("gray80","gray80","gray80"),
+          node_color_axis_label = "Relative abundance") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig3_concrete_community_decontam_overview.pdf", 
+         device = cairo_pdf, width = 12, height = 12, dpi = 600) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig3_concrete_community_decontam_overview.eps", 
+         device=cairo_ps, fallback_resolution = 600, width = 12, height = 12, dpi = 600) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig3_concrete_community_decontam_overview.png", 
+         type = "cairo", dpi = 600, width = 12, height = 12)
+```
+
+## Figure 4: Influence of precursors on concrete bacterial communities
+
+Some text/labels in the figure were tweaked in illustrator after export.
+
+```{r message=FALSE, warning=FALSE}
+library(ggalluvial)
+library(patchwork)
+library(tidyverse)
+library(ggtext)
+
+#Load sourcetracking results
+mit_source_prop <- read_delim("analysis/source_tracker/st_out_mit/mixing_proportions.txt", delim = "\t")
+unmit_source_prop <- read_delim("analysis/source_tracker/st_out_unmit/mixing_proportions.txt", delim = "\t")
+
+st_results <- full_join(mit_source_prop,unmit_source_prop) %>% 
+  mutate(FlyAsh = if_else(is.na(FlyAsh),0,FlyAsh)) %>% 
+  rename(Water = "tapwater") %>% 
+  column_to_rownames("#SampleID")
+
+#load sample metadata
+metadata <- read.table('data/sample-metadata.tsv',sep='\t',h=T,check=F,comment='') %>%
+  mutate(SourceSink = if_else(Type == "Concrete", "sink","source"), 
+         Env= Description,) %>% 
+  column_to_rownames("#SampleID")
+
+#Load concrete composition
+concrete_composition <- read_csv("analysis/source_tracker/actual_concrete_composition.csv")
+```
+
+Plot leave-one-out validation
+
+```{r}
+#read in results
+loo_results <- read_delim("analysis/source_tracker/st_out_mit/loo/mixing_proportions.txt", delim = "\t") %>%
+  rename(sink = "collapse_col") %>%
+  gather("source","val", -sink) %>%
+  mutate(val = round(val, 3))
+
+#Plot and save
+(loo_heatmap <- loo_results %>% ggplot(aes(source, sink, fill = val)) +
+  geom_tile() +
+  geom_text(aes(label = val), color = "black") +
+  coord_fixed() +
+  scale_fill_gradient(low = "grey100", high = "grey50") +
+  theme_minimal() +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF5_sourcetracking_loo.png", type = "cairo"))
+```
+
+```{r}
+#With unknowns
+
+for_alluvial <- st_results %>% 
+  rownames_to_column("sample") %>% 
+  gather("source","value", -sample) %>% 
+  left_join(metadata %>% 
+    rownames_to_column("sample") %>% 
+    select(sample, Months, Mitigation_status, Description)) %>%
+  filter(Months == 0 | Months == 21) %>%
+  group_by(Description, source) %>%
+  mutate(value = sum(value) / 3, type = glue::glue("Biologically inferred<br>source composition ({Months})")) %>%
+  ungroup() %>%
+  select(-sample, -Description) %>%
+  distinct() %>%
+  bind_rows(concrete_composition %>% mutate(type = "Concrete physical<br>composition", Mitigation_status = str_to_lower(Mitigation_status))) %>%
+  mutate(source = factor(source,levels = c("FlyAsh","Powder","Gravel","Sand","Water","Unknown"))) %>%
+  group_by(type,Mitigation_status) %>% 
+  mutate(value = value / sum(value))
+
+months_to_plot <- for_alluvial %>% filter(!is.na(Months)) %>% pull(Months) %>% unique() %>% sort()
+
+#####################
+##Unmitigated samples
+#####################
+
+unmit_source <- for_alluvial %>% filter(Mitigation_status =="unmitigated")
+
+unmit_unknown <- unmit_source %>% ggplot(aes(factor(type, levels = c("Concrete physical<br>composition",glue::glue("Biologically inferred<br>source composition ({months_to_plot})"))), stratum = source, alluvium = source, y= value, fill = source, label = source)) +
+  scale_x_discrete(expand = c(.1, .1)) +
+  geom_alluvium() +
+  geom_stratum(alpha = .5) +
+  geom_text(stat = "stratum", size = 3) + 
+  theme_minimal() + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_markdown(angle = 45, hjust = 1, vjust = 1, halign = 0.5, valign = 1)) + 
+  labs(y = NULL, x = NULL) + 
+  ggtitle("ASR-reactive") +
+  scale_fill_brewer(palette = "Greys")
+
+###################
+##Mitigated samples
+###################
+unmit_source <- for_alluvial %>% filter(Mitigation_status =="mitigated")
+
+mit_unknown <- unmit_source %>% ggplot(aes(factor(type, levels = c("Concrete physical<br>composition",glue::glue("Biologically inferred<br>source composition ({months_to_plot})"))), stratum = source, alluvium = source, y= value, fill = source, label = source)) +
+  scale_x_discrete(expand = c(.1, .1)) +
+  geom_alluvium() +
+  geom_stratum(alpha = .5) +
+  geom_text(stat = "stratum", size = 3) + theme_minimal() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_markdown(angle = 45, hjust = 1, vjust = 1, halign = 0.5, valign = 1)) + 
+  labs(y = NULL, x = NULL) + 
+  ggtitle("ASR-mitigated") +
+  scale_fill_brewer(palette = "Greys")
+
+#Export combined figure
+unmit_unknown + mit_unknown + plot_layout(guides = 'collect') + plot_annotation(tag_levels = "a") + 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_SourceTracker_precursors.pdf", 
+         device = cairo_pdf, dpi = 600, width = 6, height = 4) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_SourceTracker_precursors.eps", 
+         device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6, height = 4) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_SourceTracker_precursors.png", 
+         type = "cairo", dpi = 600, width = 6, height = 4)
+```
+
+## Figure 5: Within-sample diversity over time.
+
+Linear mixed effects model of alpha diversity data, for DECONTAMINATED data
+
+```{r}
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(gridExtra)
+library(grid)
+library(gtable)
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(patchwork)
+
+#Load data
+metadata <- read_tsv("data/sample-metadata.tsv") %>% rename(sample = "#SampleID")
+
+shannon_table <- qiime2R::read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom-core-metrics-results/shannon_vector.qza")$data %>% 
+  rownames_to_column("sample")
+
+faith_pd_table <- qiime2R::read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom-core-metrics-results/faith_pd_vector.qza")$data %>% 
+  rownames_to_column("sample")
+
+separated <-  metadata %>% 
+  left_join(shannon_table) %>% 
+  left_join(faith_pd_table) %>% 
+  select(Type, Type2,Collected,shannon,faith_pd, Months, temp_avg, ASR)
+
+alpha_data <- separated %>% 
+  gather("metric","value",-Type2,-Collected, -Months, -temp_avg, -ASR, -Type) %>% 
+  mutate(Collected = lubridate::mdy(Collected))
+
+####################
+##Shannon diversity
+###################
+
+shannon_dat <- alpha_data %>% 
+  filter(str_detect(Type2,"Concrete")) %>% 
+  filter(metric == "shannon") %>%
+  mutate(Months = scale(Months), 
+         Temp = scale(temp_avg), 
+         ASR = factor(ASR, levels = c("unreactive", "reactive")))
+
+
+shannon_lme <- lmer(value ~ Months*ASR + Temp + (1|ASR), shannon_dat)
+
+summary(shannon_lme)
+shan_r2 <- r.squaredGLMM(shannon_lme) %>% signif(3) 
+shan_r2 <- paste0("Marginal R2: ", shan_r2[1],"; Conditional R2: ",shan_r2[2])
+
+shannon_coef <- summary(shannon_lme)$coefficients
+
+shannon_w_pred <- modelr::add_predictions(shannon_dat,shannon_lme)
+
+
+(shannon <- shannon_w_pred %>%
+  select(Months, Collected, value, ASR) %>% 
+  distinct() %>%
+  ggplot(aes(Collected,value, shape = ASR)) + theme_bw() +
+    geom_point(alpha = 0.25, size = 2) +
+    geom_point(data = shannon_w_pred, aes(Collected, pred), size = 3, alpha = 0.6) +
+    geom_line(data = shannon_w_pred, aes(Collected, pred, linetype = ASR), size = 1) +
+    annotation_custom(textGrob(shan_r2, 0.05, 0.95,hjust = 0,gp = gpar(fontsize = 8))) +
+    scale_x_date(labels=date_format("%b %y"),date_breaks = "2 months") +
+    theme(axis.text.x = element_text(angle=45,vjust = 1, hjust = 1)) +
+    labs(y = "Shannon", x = NULL) + 
+    theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+    lims(y = c(2,8)))
+
+shan_title <- textGrob("Shannon diversity",gp = gpar(fontsize = 16))
+
+shannon_tab <- tableGrob(summary(shannon_lme)$coefficients %>% 
+                         as.data.frame() %>% 
+                         select(Estimate, p.value = `Pr(>|t|)`) %>% 
+                         rownames_to_column("Coefficient") %>% 
+                         filter(Coefficient != "(Intercept)") %>% 
+                         mutate_at(vars(c("Estimate", "p.value")), ~ signif(.,3)) %>% 
+                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"**"),paste(p.value))), rows = NULL, theme = ttheme_default(base_size = 9))
+
+shannon_tab <- gtable_add_rows(shannon_tab, heights = grobHeight(shan_title) + unit(5,"mm"), pos = 0)
+shannon_tab <- gtable_add_grob(shannon_tab,shan_title,1,1,1,ncol(shannon_tab))
+
+############
+###Faith PD
+###########
+
+faith_dat <- alpha_data %>% 
+  filter(str_detect(Type2,"Concrete")) %>% 
+  filter(metric == "faith_pd") %>%
+  mutate(Months = scale(Months), 
+         Temp = scale(temp_avg), 
+         ASR = factor(ASR, levels = c("unreactive", "reactive"))) %>% 
+  distinct()
+
+
+faith_lme <- lmer(value ~ Months*ASR + Temp + (1|ASR), faith_dat)
+
+summary(faith_lme)
+faith_r2 <- r.squaredGLMM(faith_lme) %>% signif(3) 
+faith_r2 <- paste0("Marginal R2: ", faith_r2[1],"; Conditional R2: ",faith_r2[2])
+
+faith_coef <- summary(faith_lme)$coefficients
+
+faith_w_pred <- modelr::add_predictions(faith_dat,faith_lme) %>% distinct()
+
+
+(faith <- faith_w_pred %>%
+  select(Months, Collected, value, ASR) %>% 
+  distinct() %>%
+  ggplot(aes(Collected,value, shape = ASR)) + theme_bw() +
+    geom_point(alpha = 0.25, size = 2) +
+    geom_point(data = faith_w_pred, aes(Collected, pred), size = 3, alpha = 0.6) +
+    geom_line(data = faith_w_pred, aes(Collected, pred, linetype = ASR), size = 1) +
+    annotation_custom(textGrob(faith_r2, 0.05, 0.95,hjust = 0,gp = gpar(fontsize = 8))) +
+    scale_x_date(labels=date_format("%b %y"),date_breaks = "2 months") +
+    theme(axis.text.x = element_text(angle=45,vjust = 1, hjust = 1)) +
+    labs(y = "Faith's PD", x = NULL) +
+    lims(y = c(0,90)))
+
+faith_title <- textGrob("Faith's PD",gp = gpar(fontsize = 16))
+
+faith_tab <- tableGrob(summary(faith_lme)$coefficients %>% 
+                         as.data.frame() %>% 
+                         select(Estimate, p.value = `Pr(>|t|)`) %>% 
+                         rownames_to_column("Coefficient") %>% 
+                         filter(Coefficient != "(Intercept)") %>% 
+                         mutate_at(vars(c("Estimate", "p.value")), ~ signif(.,3)) %>% 
+                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"**"),paste(p.value))), rows = NULL,theme = ttheme_default(base_size = 9))
+
+faith_tab <- gtable_add_rows(faith_tab, heights = grobHeight(faith_title) + unit(5,"mm"), pos = 0)
+faith_tab <- gtable_add_grob(faith_tab,faith_title,1,1,1,ncol(faith_tab))
+
+
+
+
+##Precursor comparison box plots
+shan_precursors <- separated %>% ungroup() %>%
+  #filter(Type != "Concrete") %>%
+  mutate(Type2 = if_else(Type2 == "Mitigated Concrete", "ASR- concrete",Type2)) %>% 
+  mutate(Type2 = if_else(Type2 == "Unmitigated Concrete", "ASR+ concrete",Type2)) %>% 
+  select(Type, shannon, Type2) %>%
+  distinct() %>%
+  ggplot(aes(Type2,shannon)) +  
+  geom_boxplot() + 
+  geom_jitter(size = 2, width = 0.1, alpha = 0.5) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45,hjust = 1, vjust = 1)) +
+  labs(x = NULL, y = "Shannon") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+    lims(y = c(2,8))
+
+faith_precursors <- separated %>% ungroup() %>%
+  #filter(Type != "Concrete") %>%
+  mutate(Type2 = if_else(Type2 == "Mitigated Concrete", "ASR- concrete",Type2)) %>% 
+  mutate(Type2 = if_else(Type2 == "Unmitigated Concrete", "ASR+ concrete",Type2)) %>% 
+  select(Type, faith_pd, Type2) %>%
+  distinct() %>%
+  ggplot(aes(Type2,faith_pd)) + 
+  geom_boxplot() + 
+  geom_jitter(size = 2, width = 0.1, alpha = 0.5) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45,hjust = 1, vjust = 1)) +
+  labs(x = NULL, y = "Faith's PD") + 
+  lims(y = c(0,90))
+
+#Plot with precursors
+design <- "
+11223
+44556
+"
+
+wrap_plots(shannon_tab, shannon, shan_precursors, faith_tab, faith, faith_precursors) + 
+  plot_layout(design = design, guides = "collect",heights = c(1,1,0.3)) + 
+  plot_annotation(tag_levels = 'a') + 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_alpha_diversity_decontam.pdf", 
+         device = cairo_pdf, dpi = 600, width = 6.8, height = 4, scale = 1.5) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_alpha_diversity_decontam.eps", 
+         device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6.8, height = 4, scale = 1.5) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_alpha_diversity_decontam.png", 
+         type = "cairo", dpi = 600, width = 6.8, height = 4, scale = 1.5)
+
+```
+
+## Table 1: PERMANOVA results
+
+```{r message=FALSE, warning=FALSE}
+library(vegan)
+
+gen_unidist <- read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom-core-metrics-results/generalized_05_unifrac_distance_matrix.qza") %>% .$data
+
+metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  as.data.frame() %>% 
+  filter(Type == "Concrete") %>% 
+  mutate(Temperature = scale(temp_avg),
+         Months = scale(Months)) %>% 
+  column_to_rownames("#SampleID") %>%
+  .[rownames(as.matrix(gen_unidist)),]
+
+perm <- how(nperm = 999)
+#setBlocks(perm) <- with(metadata, ASR)
+
+set.seed(333)
+
+##############
+# sequentially
+by <- "terms"
+(adonis_sequential <- adonis2(gen_unidist ~ Temperature + Months + ASR, data = metadata, permutations = perm, by = by))
+seq_summary <- broom::tidy(adonis_sequential) %>% mutate(terms_tested = "Sequentially")
+
+############
+# Marginally
+by <- "margin"
+(adonis_margin <- adonis2(gen_unidist ~ Temperature + Months + ASR, data = metadata, permutations = perm, by = by))
+margin_summary <- broom::tidy(adonis_margin) %>% mutate(terms_tested = "Marginally")
+
+#Calculate beta dispersion p.value for each term
+beta_dist <- function(dist, term){
+  anova(betadisper(dist,metadata %>% pull(paste0(term))))$`Pr(>F)`[1]
+}
+
+terms <- c("Temperature","Months","ASR")
+
+disp <- data.frame(disp_p_val = sapply(terms,beta_dist,dist = gen_unidist)) %>% 
+  rownames_to_column("Coefficient")
+
+
+#Make summary table
+
+permanova_table <- bind_rows(seq_summary,margin_summary) %>% 
+  mutate(Metric = "gUniFrac") %>%
+  filter(term %in% terms) %>% 
+  select(Metric, terms_tested, Coefficient = "term", R2, F = "statistic", p.value) %>% 
+  left_join(disp) %>% 
+  mutate(across(c("F","p.value","disp_p_val"),~round(.,3))) %>% 
+  rename(`Terms Tested` = "terms_tested", `Dispersion p.value` = "disp_p_val")
+
+knitr::kable(permanova_table)
+
+```
+
+## Figure 6: Taxa changes over time
+
+Blue (both) added to legend with illustrator after output here.
+
+```{r}
+library(scales)
+library(tidyverse)
+library(qiime2R)
+library(readr)
+library(lubridate)
+library(microbiome)
+library(patchwork)
+
+#Import and process (make relative abund)
+
+otu_table <- read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom_table.qza")$data %>% as.data.frame()
+
+metadata <- sample_metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  mutate(sample = `#SampleID`, Collected = mdy(Collected))
+
+make_rel <- function(x) {x/sum(x)}
+
+rel_otu_table <- otu_table %>% 
+  transform("compositional") %>% as.data.frame() %>% 
+  mutate(otu = rownames(otu_table))
+
+taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  separate(., taxonomy, c("Kingdom","Phylum","Class","Order", "Family", "Genus","Species"), sep= "; [a-z]__", remove=TRUE) %>% 
+  select(-confidence, otu = `#OTU ID`) %>% 
+  filter(otu %in% rownames(otu_table))
+
+long_otu <- rel_otu_table %>% 
+  gather(key = "sample", value = "abund", -otu) %>% 
+  left_join(taxonomy) %>% 
+  left_join(metadata[,c("sample","Months","ASR","temp_avg", "Collected")])
+
+
+#Set the taxonomic level being explored
+tax_level <- quo(Phylum)
+
+#Get the most abundant taxa at the defined level
+top_10_phyla <- long_otu %>% 
+  group_by(!!tax_level) %>% 
+  mutate(rel_sum = sum(abund)) %>% 
+  select(!!tax_level, rel_sum) %>% 
+  ungroup() %>% unique() %>% 
+  top_n(5, rel_sum)
+
+#Calculate the number of ASVs for each taxa
+Phyla_subs <- long_otu %>% 
+  filter(abund > 0) %>% 
+  group_by(sample, !!tax_level) %>% 
+  mutate(sub_species = n()) %>%
+  ungroup() %>% group_by(!!tax_level) %>%
+  mutate(subspecies.z = scale(sub_species))
+
+#make table for plotting
+Phyla_subs <- long_otu %>% 
+  filter(abund > 0) %>% 
+  select(otu, Phylum, Class, Order, Family, Genus, Species, Months, ASR, Collected) %>%
+  distinct() %>% 
+  group_by(Months, ASR, !!tax_level) %>% 
+  mutate(sub_species = n()) %>%
+  ungroup() %>% group_by(!!tax_level) %>%
+  mutate(subspecies.z = scale(sub_species))
+
+#Richness plot
+
+(subspecies_richness <- Phyla_subs %>% filter(!!tax_level %in% pull(top_10_phyla, !!tax_level)) %>% 
+  select(Months, subspecies.z, sub_species, !!tax_level, ASR, Collected) %>% distinct() %>% 
+  group_by(!!tax_level) %>% mutate(phy_mean = mean(sub_species)) %>% 
+  ggplot(aes(Collected, sub_species, linetype = ASR, shape = ASR, color = ASR)) + 
+    geom_point(alpha = 0.7, size = 2) + 
+    scale_shape_manual(values=c(17, 21), name = "ASR") +
+    scale_color_manual(values = c("darkorange2","grey40"), name = "ASR") +
+    geom_smooth(method = "loess", se = F) +
+    scale_x_date(labels=date_format("%b '%y"),
+                 date_breaks = paste(3,"months"),
+                 limits = c(min(mdy(Phyla_subs$Collected)),max(mdy(Phyla_subs$Collected)))) +
+    #geom_smooth(method = "lm", se = F) +
+    scale_y_log10() + 
+    labs(y = "ASV richness (log)") +
+    #facet_wrap(vars( factor(!!tax_level,top_group_f)),nrow = 1) + #use this if trying to match the facet order of Shannon plot
+    facet_wrap(vars( factor(!!tax_level,pull(top_10_phyla,!!tax_level))),nrow = 1) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle=45,vjust = 1, hjust = 1),
+          axis.title.x = element_blank()))
+
+#Prevalence plot
+
+(prev_examples <- plot_prevalence("Acinetobacter", se = F) +
+    plot_prevalence("Bacillus", se = F) +  theme(axis.text.y=element_blank(),axis.title.y=element_blank()) +  
+    plot_prevalence("Beijerinckiaceae", se = F) + theme(axis.text.y=element_blank(),axis.title.y=element_blank()) + 
+    plot_prevalence("Psychrobacter", se = F) + theme(axis.text.y=element_blank(),axis.title.y=element_blank()) + 
+    plot_prevalence("Ferruginibacter", se = F) + theme(axis.text.y=element_blank(),axis.title.y=element_blank()) + 
+    plot_layout(ncol = 5,  tag_level = "new"))
+
+#Relative abundance plots
+
+(rel_abund <- plot.taxa("Acinetobacter", agglom = TRUE, point_alpha = 0.7, se = FALSE) +
+    plot.taxa("Bacillus", agglom = TRUE, point_alpha = 0.7, se = FALSE) + labs(y = NULL) +
+    plot.taxa("Beijerinckiaceae", agglom = TRUE, point_alpha = 0.7, se = FALSE) + labs(y = NULL) +
+    plot.taxa("Psychrobacter",agglom = TRUE, point_alpha = 0.7, se = FALSE) + labs(y = NULL) +
+    #plot.taxa("Romboutsia",agglom = TRUE, point_alpha = 0.8, smooth_method = "lm") + labs(y = NULL) +
+    plot.taxa("Ferruginibacter",smooth_method = NA, agglom = TRUE, point_alpha = 0.7, se = FALSE) + labs(y = NULL) + 
+    plot_layout(ncol = 5, tag_level = "new"))
+
+
+subspecies_richness / prev_examples / rel_abund + plot_layout(guides = "collect") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig6_taxa_changes.pdf", 
+         device = cairo_pdf, dpi = 600, scale = 1.5, width = 6.8, height = 4) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig6_taxa_changes.eps", 
+         device=cairo_ps, fallback_resolution = 600, dpi = 600, scale = 1.5, width = 6.8, height = 4) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig6_taxa_changes.png", 
+         type = "cairo", dpi = 600, scale = 1.5, width = 6.8, height = 4)
+
+```
+
+## Figure 7: Concrete compared to EMP samples
+
+Plot the PCoA produced with QIIME 2
+
+```{r}
+library(tidyverse)
+library(qiime2R)
+library(glue)
+library(patchwork)
+library(ragg)
+library(ggtext)
+
+emp_tapwater_concrete_map <- read_delim("data/processed/emp_data/emp_tapwater_concrete_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  dplyr::rename(sample = "#SampleID") %>% 
+  filter(include_in_concrete_comparison == TRUE)
+
+pcoa <- read_qza("data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_pcoa.qza")$data
+
+series_samples <- c("Concrete", "FlyAsh", "Powder", "Sand", "Gravel")
+
+empo3 <- levels(as.factor(emp_tapwater_concrete_map$empo_3)) %>% 
+  data.frame(empo_3 = .) %>% 
+  cbind( colors = c("grey80", "#ff0000", "#f27304", "#f27304", "#ff0000", "#ff0000", "black", "#fcc688", "maroon2", "maroon2", "#52ff3c", "#500261", "#80c99b", "#045b04", "#80c99b", "maroon2", "maroon2",  "#ff0000", "#a36f23", "#765f3d", "#6b440b", "#ffff00", "#ababab", "#5e5e5e", "#7cecf4", "#0000ff","#000098")) %>%
+  mutate(shapes = case_when(empo_3 == "Powder" ~ 16,
+                            empo_3 == "Gravel" ~ 15,
+                            empo_3 == "FlyAsh" ~ 17,
+                            empo_3 == "Sand" ~ 18, 
+                            empo_3 == "Concrete" ~ 16)) %>% 
+  mutate(shapes = if_else(is.na(shapes), 16, shapes),
+         empo_3 = as.character(empo_3), colors = as.character(colors),
+         empo_3 = if_else(empo_3 %in% series_samples, glue("**{empo_3}**"), empo_3)) #%>%
+  #filter(!empo_3 %in% series_samples)
+
+variance_explained <- pcoa$ProportionExplained %>%
+  gather("pc", "variance_explained") %>%
+  mutate(percent_variance_explained = glue("{round(variance_explained * 100,2)} %"))
+
+long_pcoa <- pcoa$Vectors %>% 
+  as.data.frame() %>%
+  select(sample = "SampleID", PC1, PC2, PC3) %>%
+  left_join(emp_tapwater_concrete_map %>% select(sample,empo_3)) %>% 
+  mutate(our_sample = if_else(empo_3 %in% series_samples,TRUE, FALSE) ,
+         empo_3 = if_else(empo_3 %in% series_samples, glue("**{empo_3}**"), empo_3))
+  
+  
+pc_1_2 <- long_pcoa %>% filter(!empo_3 %in% series_samples) %>% ggplot(aes(PC1, PC2, color = factor(empo_3, levels = empo3$empo_3), label2 = sample, shape = factor(empo_3, levels = empo3$empo_3))) + 
+  geom_point(size = 0.4, alpha = 0.4) +
+  geom_point(data = long_pcoa %>% filter(our_sample == TRUE), size = 2.5, alpha = 0.8) +
+  theme_bw() +
+  coord_fixed(ratio = variance_explained$variance_explained[2] / variance_explained$variance_explained[1]) +
+  scale_color_manual(values = empo3$colors) +
+  scale_shape_manual(values = empo3$shapes) +
+  labs(x = NULL,
+       y = glue("PC2 [{variance_explained$percent_variance_explained[2]}]")) + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(), 
+        legend.position = "none") + 
+  guides(size = FALSE) 
+  
+
+pc_1_3 <- long_pcoa %>% filter(!empo_3 %in% series_samples) %>% ggplot(aes(PC1, PC3, color = factor(empo_3, levels = empo3$empo_3), label2 = sample, shape = factor(empo_3, levels = empo3$empo_3))) + 
+  geom_point(size = 0.4, alpha = 0.4) +
+  geom_point(data = long_pcoa %>% filter(our_sample == TRUE), size = 2.5, alpha = 0.8) +
+  theme_bw() +
+  coord_fixed(ratio = variance_explained$variance_explained[3] / variance_explained$variance_explained[1]) +
+  scale_color_manual(values = empo3$colors) +
+  scale_shape_manual(values = empo3$shapes) +
+  labs(x = glue("PC1 [{variance_explained$percent_variance_explained[1]}]"),
+       y = glue("PC3 [{variance_explained$percent_variance_explained[3]}]"),
+       color = "Sample type (EMPO level 3)",
+       shape = "Sample type (EMPO level 3)") +
+  guides(size = FALSE) +
+  theme(legend.text = element_markdown(size = 8))
+
+(pcoa_plot_no_title <- pc_1_2 / pc_1_3 + plot_layout(guides = "collect") + 
+    ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/EMP_PCoA_generalised_0.5_UniFrac_no_title.png", type = "cairo", width = 6.8, height = 3.8, scale = 1.2))
+```
+
+Plot mean distances of concrete samples to precursors and EMPO3 groups
+
+```{r EMP distance comparisons}
+library(qiime2R)
+library(tidyverse)
+library(patchwork)
+library(ggtext)
+library(glue)
+
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  dplyr::select(sample = "#SampleID",Env,empo_2,empo_3, env_material,env_feature,env_biome,sample_scientific_name,host_common_name)
+
+series_samples <- c("Concrete", "FlyAsh", "Powder", "Sand", "Gravel")
+
+#Import decontaminated distances
+
+concrete_samples <- metadata %>% filter(empo_3 == "Concrete") %>% pull(sample)
+
+decontam_emp_dists <- read_qza("data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_distance_matrix.qza")$data %>% 
+  as.matrix() %>% as.data.frame() %>% 
+  rownames_to_column("s1") %>% 
+  gather("s2","decontam_dist",-s1) %>%
+  filter(s1 != s2, s1 %in% concrete_samples) %>%
+  left_join(metadata %>% dplyr::rename(s1 = "sample")) %>%
+  dplyr::rename(s1_env = "Env", 
+                s1_empo_2 = "empo_2", 
+                s1_empo_3 = "empo_3", 
+                s1_mat = "env_material", 
+                s1_feature = "env_feature", 
+                s1_biome = "env_biome", 
+                s1_sci_name = "sample_scientific_name", 
+                s1_host = "host_common_name") %>%
+  left_join(metadata %>% dplyr::rename(s2 = "sample")) %>% 
+  dplyr::rename(s2_env = "Env", 
+                s2_empo_2 = "empo_2", 
+                s2_empo_3 = "empo_3",
+                s2_mat = "env_material", 
+                s2_feature = "env_feature", 
+                s2_biome = "env_biome", 
+                s2_sci_name = "sample_scientific_name", 
+                s2_host = "host_common_name") %>%
+  filter(s1_empo_3 == "Concrete") %>% 
+  gather("dist_type","dist",c("decontam_dist"))
+
+
+similarity <- decontam_emp_dists %>% 
+  mutate(decontam_sim = 1 - dist) %>% 
+  mutate(precursor = if_else(s2_empo_3 %in% series_samples[-1], TRUE, FALSE),
+         s2_empo_3 = if_else(s2_empo_3 %in% series_samples, glue("**{s2_empo_3}**"), s2_empo_3))
+
+
+mean_emp_sim <- decontam_emp_dists %>%
+  group_by(dist_type,s2_empo_3) %>% 
+  filter(!is.na(dist), dist_type == "decontam_dist") %>%
+  select(dist,s2_empo_3,dist_type) %>% distinct() %>%
+  mutate(mean_dist = 1- mean(dist), mean_sd = sd(dist), sem = sd(dist)/sqrt(length(dist))) %>%
+  select(s2_empo_3,mean_dist,dist_type,sem,mean_sd, dist) %>% 
+  mutate(precursor = if_else(s2_empo_3 %in% series_samples[-1], TRUE, FALSE),
+         s2_empo_3 = if_else(s2_empo_3 %in% series_samples, glue("**{s2_empo_3}**"), s2_empo_3))
+
+
+#Plot mean distance between decontaminated concrete samples and empo3 groups + precursor materials
+(emp_sim_horiz <- mean_emp_sim %>%
+  ggplot(aes(reorder(s2_empo_3,-mean_dist),1- dist)) + 
+    geom_violin() +
+    geom_point(aes(x = s2_empo_3, y = mean_dist), data = . %>% select(s2_empo_3,mean_dist) %>% distinct(), inherit.aes = FALSE) + 
+    theme_minimal() +
+    theme(axis.text.x = element_markdown(size = 7,angle = 45,valign = 1,halign = 1,vjust = 1,hjust = 1),
+          axis.title.y = element_text(size = 8)) +
+    labs(x = NULL, y = "Mean similarity (1- gUniFrac distance)"))
+
+
+#Combine plots for the paper
+
+##Load the PCoA plot, easier to do from the image to keep proportions accurate and not make the scales go wonky
+emp_pcoa_image <- magick::image_read("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/EMP_PCoA_generalised_0.5_UniFrac_no_title.png") %>% grid::rasterGrob()
+
+
+##Define the plot layout
+layout <- "
+AAAAA
+AAAAA
+AAAAA
+BBBBB
+"
+
+##Make plot without precursors included in the mean dists
+##Make plot with precursors included in mean dists
+wrap_plots(emp_pcoa_image, emp_sim_horiz) + 
+  plot_layout(design = layout) + 
+  plot_annotation(tag_levels = "a") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig7_EMP_PCoA_generalised_0.5_UniFrac.pdf", 
+         device = cairo_pdf, dpi = 600, width = 6, height = 6) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig7_EMP_PCoA_generalised_0.5_UniFrac.eps", 
+         device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6, height = 6) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig7_EMP_PCoA_generalised_0.5_UniFrac.png", 
+         type = "cairo", dpi = 600, width = 6, height = 6)
+
+```
+
+## Figure 8: Potential bioindicators of ASR
+
+```{r}
+library(patchwork)
+
+multiple <- c("Arcobacter", "Bryobacter", "Carnobacterium", "Lawsonella", "Modestobacter", "Salinicoccus", "Rhodocyclaceae", "Lawsonella", "Flavobacterium", "Rheinheimera soli") %>% unique()
+
+indic_sp <- c("Arcobacter", "Bryobacter")
+metaSeq <- c("Arcobacter", "Bryobacter", "Carnobacterium", "Lawsonella", "Modestobacter", "Salinicoccus")
+logit <- c("Flavobacterium", "Lawsonella", "Rheinheimera soli", "Rhodocyclaceae")
+  
+
+symbols <- data.frame(tax = multiple) %>% 
+  mutate(ind = if_else(tax %in% indic_sp, "*",""),
+         meta = if_else(tax %in% metaSeq, "#",""),
+         log = if_else(tax %in% logit, "^",""),
+         symbols = glue::glue("{ind}{meta}{log}")) %>% 
+  rename(og_taxa = "tax")
+
+
+
+mult <- plot.taxa(taxa = multiple, smooth_method = "lm", ncol = 3)
+
+mult_df <- mult$data %>% 
+  left_join(symbols) %>% 
+  mutate(tax_and_level = glue::glue("{tax_and_level}{symbols}"))
+
+mult$data <- mult_df
+
+#without this it didn't save w/ symbols correctly
+mult_exp <- mult
+
+mult_exp +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig8_ASR_indicators.pdf", 
+         device = cairo_pdf, dpi = 600,width = 6.5, height =4) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig8_ASR_indicators.eps", 
+         device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6.5, height =4) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig8_ASR_indicators.png", 
+         type = "cairo", dpi = 600, width = 6.5, height =4)
+
+```
+
+## ST1: ASV count at each processing stage
+
+```{r}
+#Load metadata
+metadata <- read_delim("data/sample-metadata.tsv", "\t") %>%
+  select(sample = "#SampleID", Months_since_start = "Months", Collected, ASR, old_sample_ids)
+
+#Define function for extracting data from qiime2 summary file
+read_demux_qzv <- function(qzv_path){
+  temp_folder <- tempdir() #create temp directory
+  qzv_contents <- zip::zip_list(qzv_path) #list files in zip
+  qzv_summary_file <- qzv_contents %>% #find summary table
+    filter(str_detect(filename,"per-sample-fastq-counts.csv")) %>% #find summary table
+    pull(filename)
+  zip::unzip(qzv_path,qzv_summary_file,overwrite = TRUE, exdir = temp_folder) #unzip qzv to temp.dir
+  summary_table <- read_delim(file.path(temp_folder,qzv_summary_file), ",") %>% #read summary table
+    dplyr::rename(sample = "Sample name")
+  file.remove(file.path(temp_folder,qzv_summary_file)) #remove temp.file
+  return(summary_table)
+}
+
+#Get the qiime2 demux summary information
+
+#Read in demux files
+raw_demux_summary <- read_demux_qzv("data/qiime2/paired-end-demux.qzv") %>%
+  rename(raw_sequence_count = "Sequence count", old_sample_ids = "sample")
+
+qual_filt_demux_summary <- read_demux_qzv("data/qiime2/dada2_filt_paired-end-demux.qzv") %>%
+  rename(post_cutadapt_sequence_count = "Sequence count")
+
+#Add sample read counts to summary table and compute percent of reads passing quality filtering w/ CutAdapt
+summary_table <- metadata %>% 
+  left_join(raw_demux_summary) %>%
+  left_join(qual_filt_demux_summary) %>%
+  mutate(percent_reads_retained_cutadapt = (post_cutadapt_sequence_count/raw_sequence_count)*100)
+
+
+# Def. function for extracting table summary information
+read_table_summary <- function(qzv_path){
+  temp_folder <- tempdir() #create temp directory
+  qzv_contents <- zip::zip_list(qzv_path) #list files in zip
+  qzv_summary_file <- qzv_contents %>% #find summary table
+    filter(str_detect(filename,"sample-frequency-detail.csv")) %>% #find summary table
+    pull(filename)
+  zip::unzip(qzv_path,qzv_summary_file,overwrite = TRUE, exdir = temp_folder) #unzip qzv to temp.dir
+  summary_table <- read_delim(file.path(temp_folder,qzv_summary_file), ",",col_names = FALSE) %>% #read summary table
+    dplyr::rename(sample = "X1", seq_obs = "X2")
+  file.remove(file.path(temp_folder,qzv_summary_file)) #remove temp.file
+  return(summary_table)
+}
+
+#Import and add DADA2 stats
+dada2_stats <- read_qza("data/qiime2/dada2_stats.qza")$data %>%
+  rownames_to_column("sample") %>%
+  rename_at(vars(-sample),~paste0("dada2.",.))
+
+#Import decontamination summary
+decontam_summary <- read_delim("data/processed/decontamination_stat.tsv","\t") %>%
+  select(sample, post_decontam_reads,percent_read_loss,pre_decontam_otu_n = otu_n, post_decontam_otu_n,percent_otu_loss)
+
+
+#Merge DADA2 stats and the decontam table summary
+obs_table <- summary_table %>%
+  left_join(dada2_stats) %>%
+  left_join(decontam_summary) %>%
+  select(-old_sample_ids) %>%
+  arrange(lubridate::mdy(Collected)) %>%
+  write_delim("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST_1_processing_summary.tsv","\t")
+
+```
+
+## ST2: Contaminant taxa
+
+Produced in the decontamination .Rmd document.
+
+## ST3: Contaminants by detection method
+
+Produced in the decontamination .Rmd document.
+
+## SF1: Euler plot of contaminants identified per method
+
+Produced in the decontamination .Rmd document.
+
+## SF2: Euler plot of contaminant sources
+
+Produced in the decontamination .Rmd document.
+
+## SF3: Heat tree matrix of contaminant taxa
+
+Produced in the decontamination .Rmd document.
+
+## SF4: Decontamination changes in concrete similarity to EMP groups
+
+Produced in the EMP comparison .Rmd document.
+
+## ST4: community composition at each taxonomic level
+
+```{r}
+library(readr)
+library(phyloseq)
+library(qiime2R)
+library(xlsx)
+
+metadata <- read_tsv("data/sample-metadata.tsv") %>% 
+  rename(sample = "#SampleID")
+
+table <- read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_table.qza")$data %>% 
+  as.data.frame() %>% 
+  rownames_to_column("otu") %>% 
+  gather("sample","count",-"otu") %>% 
+  left_join(metadata %>% select(sample,Type)) %>% 
+  group_by(otu,Type) %>% 
+  summarise(count = sum(count)) %>% 
+  ungroup() %>% group_by(Type) %>% 
+  mutate(rel_abund = count / sum(count)) %>% #make rel. abundance
+  select(otu,Type,rel_abund) %>% 
+  spread("Type","rel_abund") %>% 
+  column_to_rownames("otu") %>% 
+  otu_table(taxa_are_rows = TRUE)
+
+metadat <- metadata %>% 
+  column_to_rownames("sample") %>% sample_data()
+
+tax <- qza_to_phyloseq(taxonomy = "data/qiime2/silva_taxonomy.qza")
+
+decontam_ps <- phyloseq(table, tax) #%>% transform_sample_counts(function(x) x / sum(x))
+
+
+levels <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+outfile <- "g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST4_community_composition_all_tax_levels.xlsx"
+
+
+for (level in levels){
+
+  summarized_table <- speedyseq::tax_glom(decontam_ps,level)
+  tab <- summarized_table %>% otu_table() %>% as.data.frame() %>% rownames_to_column("otu")
+  tax <- summarized_table %>% tax_table() %>% .@.Data %>% as.data.frame() %>% rownames_to_column("otu") %>% left_join(tab) %>% select(-otu)
+  
+    
+  if (level =="Kingdom"){
+    completed <- level
+    write.xlsx(tax %>% select(one_of(completed,colnames(tab))), 
+               file= outfile, sheetName=level, row.names=FALSE)
+  }
+  
+  if (level != "Kingdom"){
+    completed <- c(completed,level)
+    write.xlsx(tax %>% select(one_of(completed,colnames(tab))),
+               file=outfile, sheetName=level, append=TRUE, row.names=FALSE)
+  }
+  
+}
+
+```
+
+## SF6: Within sample diverity before decontamination
+
+Linear mixed effects model of alpha diversity data, for RAW data
+
+```{r}
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(gridExtra)
+library(grid)
+library(gtable)
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(patchwork)
+
+#Load data
+metadata <- read_tsv("data/sample-metadata.tsv") %>% rename(sample = "#SampleID")
+
+shannon_table <- qiime2R::read_qza("data/processed/biom_tables/raw/all_w_taxonomy_table.biom-core-metrics-results/shannon_vector.qza")$data %>% 
+  rownames_to_column("sample")
+
+faith_pd_table <- qiime2R::read_qza("data/processed/biom_tables/raw/all_w_taxonomy_table.biom-core-metrics-results/faith_pd_vector.qza")$data %>% 
+  rownames_to_column("sample")
+
+separated <-  metadata %>% 
+  left_join(shannon_table) %>% 
+  left_join(faith_pd_table) %>% 
+  select(Type, Type2,Collected,shannon,faith_pd, Months, temp_avg, ASR)
+
+alpha_data <- separated %>% 
+  gather("metric","value",-Type2,-Collected, -Months, -temp_avg, -ASR, -Type) %>% 
+  mutate(Collected = lubridate::mdy(Collected))
+
+####################
+##Shannon diversity
+###################
+
+shannon_dat <- alpha_data %>% 
+  filter(str_detect(Type2,"Concrete")) %>% 
+  filter(metric == "shannon") %>%
+  mutate(Months = scale(Months), 
+         Temp = scale(temp_avg), 
+         ASR = factor(ASR, levels = c("unreactive", "reactive")))
+
+
+shannon_lme <- lmer(value ~ Months*ASR + Temp + (1|ASR), shannon_dat)
+
+summary(shannon_lme)
+shan_r2 <- r.squaredGLMM(shannon_lme) %>% signif(3) 
+shan_r2 <- paste0("Marginal R2: ", shan_r2[1],"; Conditional R2: ",shan_r2[2])
+
+shannon_coef <- summary(shannon_lme)$coefficients
+
+shannon_w_pred <- modelr::add_predictions(shannon_dat,shannon_lme)
+
+
+(shannon <- shannon_w_pred %>%
+  select(Months, Collected, value, ASR) %>% 
+  distinct() %>%
+  ggplot(aes(Collected,value, shape = ASR)) + theme_bw() +
+    geom_point(alpha = 0.25, size = 2) +
+    geom_point(data = shannon_w_pred, aes(Collected, pred), size = 3, alpha = 0.6) +
+    geom_line(data = shannon_w_pred, aes(Collected, pred, linetype = ASR), size = 1) +
+    annotation_custom(textGrob(shan_r2, 0.05, 0.95,hjust = 0,gp = gpar(fontsize = 8))) +
+    scale_x_date(labels=date_format("%b %y"),date_breaks = "2 months") +
+    theme(axis.text.x = element_text(angle=45,vjust = 1, hjust = 1)) +
+    labs(y = "Shannon", x = NULL) + 
+    theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+    lims(y = c(2,8)))
+
+shan_title <- textGrob("Shannon diversity",gp = gpar(fontsize = 16))
+
+shannon_tab <- tableGrob(summary(shannon_lme)$coefficients %>% 
+                         as.data.frame() %>% 
+                         select(Estimate, p.value = `Pr(>|t|)`) %>% 
+                         rownames_to_column("Coefficient") %>% 
+                         filter(Coefficient != "(Intercept)") %>% 
+                         mutate_at(vars(c("Estimate", "p.value")), ~ signif(.,3)) %>% 
+                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"**"),paste(p.value))), rows = NULL, theme = ttheme_default(base_size = 9))
+
+shannon_tab <- gtable_add_rows(shannon_tab, heights = grobHeight(shan_title) + unit(5,"mm"), pos = 0)
+shannon_tab <- gtable_add_grob(shannon_tab,shan_title,1,1,1,ncol(shannon_tab))
+
+############
+###Faith PD
+###########
+
+faith_dat <- alpha_data %>% 
+  filter(str_detect(Type2,"Concrete")) %>% 
+  filter(metric == "faith_pd") %>%
+  mutate(Months = scale(Months), 
+         Temp = scale(temp_avg), 
+         ASR = factor(ASR, levels = c("unreactive", "reactive"))) %>% 
+  distinct()
+
+
+faith_lme <- lmer(value ~ Months*ASR + Temp + (1|ASR), faith_dat)
+
+summary(faith_lme)
+faith_r2 <- r.squaredGLMM(faith_lme) %>% signif(3) 
+faith_r2 <- paste0("Marginal R2: ", faith_r2[1],"; Conditional R2: ",faith_r2[2])
+
+faith_coef <- summary(faith_lme)$coefficients
+
+faith_w_pred <- modelr::add_predictions(faith_dat,faith_lme) %>% distinct()
+
+
+(faith <- faith_w_pred %>%
+  select(Months, Collected, value, ASR) %>% 
+  distinct() %>%
+  ggplot(aes(Collected,value, shape = ASR)) + theme_bw() +
+    geom_point(alpha = 0.25, size = 2) +
+    geom_point(data = faith_w_pred, aes(Collected, pred), size = 3, alpha = 0.6) +
+    geom_line(data = faith_w_pred, aes(Collected, pred, linetype = ASR), size = 1) +
+    annotation_custom(textGrob(faith_r2, 0.05, 0.95,hjust = 0,gp = gpar(fontsize = 8))) +
+    scale_x_date(labels=date_format("%b %y"),date_breaks = "2 months") +
+    theme(axis.text.x = element_text(angle=45,vjust = 1, hjust = 1)) +
+    labs(y = "Faith's PD", x = NULL) +
+    lims(y = c(0,90)))
+
+faith_title <- textGrob("Faith's PD",gp = gpar(fontsize = 16))
+
+faith_tab <- tableGrob(summary(faith_lme)$coefficients %>% 
+                         as.data.frame() %>% 
+                         select(Estimate, p.value = `Pr(>|t|)`) %>% 
+                         rownames_to_column("Coefficient") %>% 
+                         filter(Coefficient != "(Intercept)") %>% 
+                         mutate_at(vars(c("Estimate", "p.value")), ~ signif(.,3)) %>% 
+                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"**"),paste(p.value))), rows = NULL,theme = ttheme_default(base_size = 9))
+
+faith_tab <- gtable_add_rows(faith_tab, heights = grobHeight(faith_title) + unit(5,"mm"), pos = 0)
+faith_tab <- gtable_add_grob(faith_tab,faith_title,1,1,1,ncol(faith_tab))
+
+
+
+
+##Precursor comparison box plots
+shan_precursors <- separated %>% ungroup() %>%
+  #filter(Type != "Concrete") %>%
+  mutate(Type2 = if_else(Type2 == "Mitigated Concrete", "ASR- concrete",Type2)) %>% 
+  mutate(Type2 = if_else(Type2 == "Unmitigated Concrete", "ASR+ concrete",Type2)) %>% 
+  select(Type, shannon, Type2) %>%
+  distinct() %>%
+  ggplot(aes(Type2,shannon)) +  
+  geom_boxplot() + 
+  geom_jitter(size = 2, width = 0.1, alpha = 0.5) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45,hjust = 1, vjust = 1)) +
+  labs(x = NULL, y = "Shannon") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+    lims(y = c(2,8))
+
+faith_precursors <- separated %>% ungroup() %>%
+  #filter(Type != "Concrete") %>%
+  mutate(Type2 = if_else(Type2 == "Mitigated Concrete", "ASR- concrete",Type2)) %>% 
+  mutate(Type2 = if_else(Type2 == "Unmitigated Concrete", "ASR+ concrete",Type2)) %>% 
+  select(Type, faith_pd, Type2) %>%
+  distinct() %>%
+  ggplot(aes(Type2,faith_pd)) + 
+  geom_boxplot() + 
+  geom_jitter(size = 2, width = 0.1, alpha = 0.5) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45,hjust = 1, vjust = 1)) +
+  labs(x = NULL, y = "Faith's PD") + 
+  lims(y = c(0,90))
+
+#Plot with precursors
+design <- "
+11223
+44556
+"
+
+wrap_plots(shannon_tab, shannon, shan_precursors, faith_tab, faith, faith_precursors) + 
+  plot_layout(design = design, guides = "collect",heights = c(1,1,0.3)) + 
+  plot_annotation(tag_levels = 'a') + 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF6_alpha_diversity_raw.pdf", 
+         device = cairo_pdf, dpi = 600, width = 6.8, height = 4, scale = 1.5) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF6_alpha_diversity_raw.eps", 
+         device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6.8, height = 4, scale = 1.5) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF6_alpha_diversity_raw.png", 
+         type = "cairo", dpi = 600, width = 6.8, height = 4, scale = 1.5)
+
+```
+
+## ST6: PERMANOVA on Bray-Curtis distances
+
+```{r message=FALSE, warning=FALSE}
+library(vegan)
+
+bc_dist <- read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom-core-metrics-results/bray_curtis_distance_matrix.qza") %>% .$data
+
+metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  as.data.frame() %>% 
+  filter(Type == "Concrete") %>% 
+  mutate(Temperature = scale(temp_avg),
+         Months = scale(Months)) %>% 
+  column_to_rownames("#SampleID") %>%
+  .[rownames(as.matrix(bc_dist)),]
+
+perm <- how(nperm = 999)
+#setBlocks(perm) <- with(metadata, ASR)
+
+set.seed(333)
+
+##############
+# sequentially
+by <- "terms"
+(adonis_sequential <- adonis2(bc_dist ~ Temperature + Months + ASR, data = metadata, permutations = perm, by = by))
+seq_summary <- broom::tidy(adonis_sequential) %>% mutate(terms_tested = "Sequentially")
+
+############
+# Marginally
+by <- "margin"
+(adonis_margin <- adonis2(bc_dist ~ Temperature + Months + ASR, data = metadata, permutations = perm, by = by))
+margin_summary <- broom::tidy(adonis_margin) %>% mutate(terms_tested = "Marginally")
+
+#Calculate beta dispersion p.value for each term
+beta_dist <- function(dist, term){
+  anova(betadisper(dist,metadata %>% pull(paste0(term))))$`Pr(>F)`[1]
+}
+
+terms <- c("Temperature","Months","ASR")
+
+disp <- data.frame(disp_p_val = sapply(terms,beta_dist,dist = bc_dist)) %>% 
+  rownames_to_column("Coefficient")
+
+
+#Make summary table
+
+permanova_table <- bind_rows(seq_summary,margin_summary) %>% 
+  mutate(Metric = "gUniFrac") %>%
+  filter(term %in% terms) %>% 
+  select(Metric, terms_tested, Coefficient = "term", R2, F = "statistic", p.value) %>% 
+  left_join(disp) %>% 
+  mutate(across(c("F","p.value","disp_p_val"),~round(.,3))) %>% 
+  rename(`Terms Tested` = "terms_tested", `Dispersion p.value` = "disp_p_val")
+
+knitr::kable(permanova_table)
+
+```
+
+## ST6: PERMANOVA on generalized (0.5) UniFrac distances, calculated before decontamination
+
+```{r message=FALSE, warning=FALSE}
+library(vegan)
+
+gen_unidist <- read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_table.biom_concrete.biom-core-metrics-results/generalized_05_unifrac_distance_matrix.qza") %>% .$data
+
+metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  as.data.frame() %>% 
+  filter(Type == "Concrete") %>% 
+  mutate(Temperature = scale(temp_avg),
+         Months = scale(Months)) %>% 
+  column_to_rownames("#SampleID") %>%
+  .[rownames(as.matrix(gen_unidist)),]
+
+perm <- how(nperm = 999)
+#setBlocks(perm) <- with(metadata, ASR)
+
+set.seed(333)
+
+##############
+# sequentially
+by <- "terms"
+(adonis_sequential <- adonis2(gen_unidist ~ Temperature + Months + ASR, data = metadata, permutations = perm, by = by))
+seq_summary <- broom::tidy(adonis_sequential) %>% mutate(terms_tested = "Sequentially")
+
+############
+# Marginally
+by <- "margin"
+(adonis_margin <- adonis2(gen_unidist ~ Temperature + Months + ASR, data = metadata, permutations = perm, by = by))
+margin_summary <- broom::tidy(adonis_margin) %>% mutate(terms_tested = "Marginally")
+
+#Calculate beta dispersion p.value for each term
+beta_dist <- function(dist, term){
+  anova(betadisper(dist,metadata %>% pull(paste0(term))))$`Pr(>F)`[1]
+}
+
+terms <- c("Temperature","Months","ASR")
+
+disp <- data.frame(disp_p_val = sapply(terms,beta_dist,dist = gen_unidist)) %>% 
+  rownames_to_column("Coefficient")
+
+
+#Make summary table
+
+permanova_table <- bind_rows(seq_summary,margin_summary) %>% 
+  mutate(Metric = "gUniFrac") %>%
+  filter(term %in% terms) %>% 
+  select(Metric, terms_tested, Coefficient = "term", R2, F = "statistic", p.value) %>% 
+  left_join(disp) %>% 
+  mutate(across(c("R2","F","p.value","disp_p_val"),~round(.,3)),
+         p.value = if_else(p.value < 0.05, paste0(p.value,"*"),paste(p.value))) %>% 
+  rename(`Terms Tested` = "terms_tested", `Dispersion p.value` = "disp_p_val")
+
+knitr::kable(permanova_table)
+
+gt::gt(permanova_table) %>% 
+  gt::tab_style(
+    style = list(
+      gt::cell_text(weight = "bold")
+    ),
+    locations = list(
+      gt::cells_column_labels(gt::everything())
+    )
+  )
+```
+
+## ST7: Mantel correlation tests of time and temperature with community composition
+
+```{r}
+library(tidyverse)
+library(vegan)
+library(qiime2R)
+
+set.seed(333)
+
+gUniFrac <- read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom-core-metrics-results/generalized_05_unifrac_distance_matrix.qza")$data
+  
+BrayCurtis <- read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom-core-metrics-results/bray_curtis_distance_matrix.qza") %>% .$data
+
+metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  as.data.frame() %>% 
+  rename(Temperature = "temp_avg") %>% 
+  column_to_rownames("#SampleID") %>%
+  .[rownames(as.matrix(gUniFrac)),]
+
+perm <- how(nperm = 999)
+setBlocks(perm) <- with(metadata, ASR)
+
+months_dist <- metadata %>% select(Months) %>% scale() %>% vegdist("euclid")
+temp_dist <- metadata %>% select(Temperature) %>% scale() %>% vegdist("euclid")
+temp_and_months_dist <- metadata %>% select(Temperature, Months) %>% scale() %>% vegdist("euclid")
+
+
+mantel_res <- data.frame(dist_metric = c("gUniFrac","gUniFrac","gUniFrac","BrayCurtis","BrayCurtis","BrayCurtis"),
+                         coefficients = c("Months","Temperature","Months, Temperature","Months","Temperature","Months, Temperature"),
+                         coef_dist = c("months_dist","temp_dist","temp_and_months_dist","months_dist","temp_dist","temp_and_months_dist"),stringsAsFactors = F )
+
+rho <- c()
+p <- c()
+
+for (i in 1:length(mantel_res$dist_metric)){
+  
+  mant <- mantel(get(mantel_res$dist_metric[i]), get(mantel_res$coef_dist[i]), permutations = 999)
+  
+  p <- c(p,mant$signif)
+  rho <- c(rho,mant$statistic)
+}
+
+mantel_table <- mantel_res %>% bind_cols(p.val = p, rho = rho) %>% 
+  mutate(across(c(p.val,rho), ~ round(.,3)), #round values
+         p.val = if_else(p.val < 0.05, paste0(p.val,"*"),paste(p.val))) %>% 
+  select(`Dist. metric` = "dist_metric",
+         `Coefficient(s)` = "coefficients",
+         `Pearson r` = "rho",
+         `P-value` = "p.val")
+
+#knitr::kable(mantel_table)
+gt::gt(mantel_table) %>% 
+  gt::tab_style(
+    style = list(
+      gt::cell_text(weight = "bold")
+    ),
+    locations = list(
+      gt::cells_column_labels(gt::everything())
+    )
+  )
+
+```
+
+## SF7: Concrete similarity to EMP groups over time
+
+```{r}
+library(patchwork)
+
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  dplyr::select(sample = "#SampleID",Env,empo_2,empo_3, env_material,env_feature,env_biome,sample_scientific_name,host_common_name)
+
+series_samples <- c("Concrete", "FlyAsh", "Powder", "Sand", "Gravel")
+
+concrete_met <- read_tsv("data/sample-metadata.tsv")
+
+concrete_samples <- concrete_met %>% filter(Type == "Concrete") %>% pull(`#SampleID`)
+
+precursors <- c("FlyAsh", "Gravel", "Powder", "Sand", "Concrete")
+
+decontam_emp_dists <- read_qza("data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_distance_matrix.qza")$data %>% 
+  as.matrix() %>% as.data.frame() %>% 
+  rownames_to_column("s1") %>% 
+  gather("s2","decontam_dist",-s1) %>%
+  filter(s1 != s2, s1 %in% concrete_samples) %>%
+  left_join(metadata %>% dplyr::rename(s1 = "sample")) %>%
+  dplyr::rename(s1_env = "Env", 
+                s1_empo_2 = "empo_2", 
+                s1_empo_3 = "empo_3", 
+                s1_mat = "env_material", 
+                s1_feature = "env_feature", 
+                s1_biome = "env_biome", 
+                s1_sci_name = "sample_scientific_name", 
+                s1_host = "host_common_name") %>%
+  left_join(metadata %>% dplyr::rename(s2 = "sample")) %>% 
+  dplyr::rename(s2_env = "Env", 
+                s2_empo_2 = "empo_2", 
+                s2_empo_3 = "empo_3",
+                s2_mat = "env_material", 
+                s2_feature = "env_feature", 
+                s2_biome = "env_biome", 
+                s2_sci_name = "sample_scientific_name", 
+                s2_host = "host_common_name") %>%
+  filter(s1_empo_3 == "Concrete")
+
+
+decontam_plot_data <- decontam_emp_dists %>%
+  #left_join(raw_emp_dists) %>% #so that raw dists can be looked at as well
+  select(s1,s2,s1_empo_3,s2_empo_3,decontam_dist) %>%
+  filter(s1_empo_3 == "Concrete") %>%
+  filter(!s2_empo_3 %in% precursors) %>% 
+  left_join(concrete_met %>% select(s1 = "#SampleID", Months, ASR)) %>%
+  group_by(Months, s2_empo_3) %>%
+  summarise(mean_dist = mean(decontam_dist)) %>%
+  ungroup() %>% 
+  group_by(s2_empo_3) %>% 
+  mutate(scaled_mean = scales::rescale(1 - mean_dist, c(0,1)), 
+         similarity = 1 - mean_dist)
+
+
+decontam_plot_data %>%
+  left_join(concrete_met %>% select(Months, temp_avg, Collected)) %>% 
+  ggplot(aes(Months, similarity, color = temp_avg)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(s2_empo_3 ~ ., ncol = 4) +
+  theme_bw() +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF7_concrete_EMPO3_sim_over_time.png", type = "cairo", width = 8, height = 6)
+
+  
+```
+
+
+
+## ST8: Change in prevalence of taxa over time
+
+```{r}
+library(phyloseq)
+library(qiime2R)
+library(tidyverse)
+library(lubridate)
+
+metadata <- read_delim("data/sample-metadata.tsv", delim = "\t") %>%
+  filter(Type == "Concrete") %>%
+  mutate(DoY = as.numeric(yday(mdy(Collected))),
+         s_temp = scale(temp_avg),
+         mean_temp = mean(temp_avg), 
+         month_num = month(mdy(Collected))) %>%
+  select(sample = "#SampleID", DoY,Months, mean_temp,temp_avg, Days,s_temp, month_num, Year, ASR, Type)
+
+
+tree <- qza_to_phyloseq(tree = "data/qiime2/sepp_tree.qza")
+tax <- qza_to_phyloseq(taxonomy = "data/qiime2/silva_taxonomy.qza")
+otu_tab <- read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_table.qza")$data %>% 
+  as.data.frame() %>% #wouldn't merge in phyloseq w/o doing this for some reason
+  otu_table(taxa_are_rows = TRUE)
+
+phylo <- merge_phyloseq(otu_tab, tax, tree)
+
+genus_phylo <- speedyseq::tax_glom(phylo,taxrank = "Genus")
+
+
+table <- otu_table(genus_phylo) %>% 
+  as(Class = "matrix") %>% 
+  microbiome::transform("pa") %>%
+  as.data.frame()
+
+tax <- tax_table(genus_phylo) %>% 
+  as(Class = "matrix") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("otu") %>% 
+  select(-Species)
+
+
+long_table <- table %>%
+  rownames_to_column("otu") %>%
+  gather("sample","abund",-otu) %>%
+  #filter(abund > 0) %>%
+  left_join(tax) %>% 
+  left_join(metadata) %>%
+  filter(Type == "Concrete")
+
+tax_levels <- c("Phylum","Class","Order","Family","Genus","Species")
+
+seasonal_taxa <- data.frame() #data.frame(Taxon = character() ,Tax_lvl = character(),model_summary = list(data.frame(Test = character())))
+over_time_taxa <- data.frame()
+
+logit_res <- data.frame()
+
+#tax_lev <- "Phylum"
+#taxa = unique_taxa[1]
+
+for (tax_lev in tax_levels){
+  
+  #Run GAM for all taxa
+  
+  sum_phylo <- speedyseq::tax_glom(phylo,taxrank = paste(tax_lev))
+  
+  #Extract otu table from phyloseq obj.
+  table <- otu_table(sum_phylo) %>% 
+    as(Class = "matrix") %>% 
+    microbiome::transform("pa") %>% #convert to presence/absence matrix
+    as.data.frame()
+  
+  #Extract taxonomy table from pyloseq obj.
+  tax <- tax_table(sum_phylo) %>% 
+    as(Class = "matrix") %>% 
+    as.data.frame() %>% 
+    rownames_to_column("otu")
+  
+  #Make long/tidy table
+  long_table <- table %>%
+    rownames_to_column("otu") %>%
+    gather("sample","abund",-otu) %>%
+    #filter(abund > 0) %>%
+    left_join(tax) %>% 
+    left_join(metadata) %>%
+    filter(Type == "Concrete") %>% 
+    mutate(ASR = relevel(as.factor(ASR), "unreactive")) %>% 
+    group_by(!!sym(tax_lev)) %>% 
+    filter(sum(abund) >= 5) %>% #only consider taxa seen at least 5 times
+    ungroup()
+  
+  
+  unique_taxa <- as.character(unique(long_table %>% pull(tax_lev)))
+  
+  
+  for (taxa in unique_taxa){
+    
+    tryCatch({
+      focused_table <- long_table %>%
+        filter(!!sym(tax_lev) == taxa) %>%
+        group_by(Months)
+      
+      tax_obs <- sum(focused_table$abund)
+      
+      gam_taxa <- glm(abund ~ ASR*scale(Months), data = focused_table, family = "binomial")
+      
+      #gam_taxa <- glm(abund ~ ASR + ASR:scale(Months), data = focused_table, family = "binomial")
+    
+      gam_taxa_summary <- summary(gam_taxa)
+      
+      # if(broom::tidy(gam_taxa) %>% filter(term == "ASRreactive:scale(Months)") %>% .$p.value < 0.05 
+      #    #broom::tidy(gam_taxa) %>% filter(term == "ASRreactive") %>% .$p.value < 0.05
+      #    #broom::tidy(gam_taxa) %>% filter(term == "scale(Months)") %>% .$p.value < 0.05
+      #    ){
+      #   
+        model_summary <- broom::tidy(gam_taxa)
+        
+        logit_res <- logit_res %>% bind_rows(
+          data.frame(taxa = taxa,
+          n_obs = tax_obs,
+          tax_lev = tax_lev,
+          num_at_tax_level = length(unique_taxa),
+          aic = gam_taxa_summary$aic,
+          coefs = I(list(model_summary))
+        ))
+     # }
+    }, error=function(e){}) #if model generates error, ignore that taxa
+  }
+}
+
+unnested_logit_res <- unnest(logit_res,coefs) %>% pivot_wider(id_cols =c(taxa,n_obs,tax_lev,aic,num_at_tax_level), names_from = term, values_from = estimate:p.value)
+
+
+logit_res <- unnested_logit_res %>% 
+  mutate(plot_name = str_remove(taxa, "D_[0-9]__")) %>% 
+  mutate(log_odds_months_ASR = round(exp(1) * (`estimate_ASRreactive:scale(Months)` + estimate_ASRreactive), 2),
+         `p.value_ASRreactive:scale(Months)` = signif(`p.value_ASRreactive:scale(Months)`, 2))
+
+filt_logit_res <- logit_res %>% 
+  filter(estimate_ASRreactive > 0, 
+         `estimate_ASRreactive:scale(Months)` > 0,
+         aic < 115)
+
+write_tsv(logit_res,"g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST8_presense_absence_change.tsv")
+```
+
+
+## ST9: Change in relative abundance over time
+
+Computed in the code below alongside ST10.
+
+## ST10:: Seasonal changes in relative abundance
+
+```{r}
+library(tidyverse)
+library(qiime2R)
+library(mgcv)
+library(lubridate)
+
+metadata <- read_delim("data/sample-metadata.tsv", delim = "\t") %>%
+  filter(Type == "Concrete") %>%
+  mutate(DoY = as.numeric(yday(mdy(Collected))),
+         s_temp = scale(temp_avg),
+         mean_temp = mean(temp_avg), 
+         month_num = month(mdy(Collected))) %>%
+  select(sample = "#SampleID", DoY,Months, mean_temp,temp_avg, Days,s_temp, month_num, Year, ASR, Type)
+
+tree <- qza_to_phyloseq(tree = "data/qiime2/sepp_tree.qza")
+tax <- qza_to_phyloseq(taxonomy = "data/qiime2/silva_taxonomy.qza")
+otu_tab <- read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_table.qza")$data %>% 
+  as.data.frame() %>% #wouldn't merge in phyloseq w/o doing this for some reason
+  otu_table(taxa_are_rows = TRUE)
+
+phylo <- merge_phyloseq(otu_tab, tax, tree)
+
+genus_phylo <- speedyseq::tax_glom(phylo,taxrank = "Genus")
+
+#otu table
+table <- otu_table(genus_phylo) %>% 
+  as(Class = "matrix") %>% 
+  microbiome::transform("hell") %>% #This applies a transformation to the data, hellinger ("hell") or center-log-ratio ("clr") are recommended.
+  as.data.frame()
+
+#process taxonomy data
+tax <- tax_table(genus_phylo) %>% 
+  as(Class = "matrix") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("otu") %>% 
+  select(-Species)
+
+#convert data to long form
+long_table <- table %>%
+  rownames_to_column("otu") %>%
+  gather("sample","abund",-otu) %>%
+  filter(abund > 0) %>%
+  left_join(tax) %>% 
+  left_join(metadata) %>%
+  filter(Type == "Concrete")
+
+#Run GAM for all taxonomic levels
+#Taxa that do not appear in enough samples for the model to properly run are excluded from consideration.
+
+tax_levels <- c("Phylum","Class","Order","Family","Genus","Species")
+
+seasonal_taxa <- data.frame() 
+over_time_taxa <- data.frame()
+
+p.val.thresh = 1
+
+devAskNewPage(ask = FALSE) #so no prompt for next plot
+
+
+for (tax_lev in tax_levels){
+  
+  #Run GAM for all taxa
+  
+  sum_phylo <- speedyseq::tax_glom(phylo,taxrank = paste(tax_lev))
+  
+  
+  table <- otu_table(sum_phylo) %>% 
+    as(Class = "matrix") %>% 
+    microbiome::transform("hell") %>%
+    as.data.frame()
+  
+  tax <- tax_table(sum_phylo) %>% 
+    as(Class = "matrix") %>% 
+    as.data.frame() %>% 
+    rownames_to_column("otu")
+  
+  long_table <- table %>%
+    rownames_to_column("otu") %>%
+    gather("sample","abund",-otu) %>%
+    filter(abund > 0) %>%
+    left_join(tax) %>% 
+    left_join(metadata) %>%
+    filter(Type == "Concrete")
+  
+  
+  unique_taxa <- as.character(unique(long_table %>% pull(tax_lev)))
+  
+  
+  for (taxa in unique_taxa){
+    
+    focused_table <- long_table %>%
+        filter(!!sym(tax_lev) == taxa) %>%
+        mutate(mean_abund = mean(abund))
+    
+    if (nrow(focused_table) > 10){ ##Taxa has to be observed at least 10 times
+    
+    tryCatch({
+      
+      gamm_taxa <- gamm(scale(abund) ~ s(DoY, bs = "cc",k= 4) + s(Months,bs = "cr",k=1), data = focused_table, random = list(ASR=~1))
+      
+      gam_taxa <- gamm_taxa$gam
+      
+      gam_taxa_summary <- summary(gam_taxa)
+      
+      if (gam_taxa_summary$s.pv[1] < p.val.thresh){
+        plt <- plot(gam_taxa)[[1]]
+        
+        gam_month_data <- data.frame(x = plt$x, 
+                             y = plt$fit,
+                             se = plt$se)
+        
+        peak_day <- gam_month_data %>% filter(y == max(y)) %>% mutate(date = as.Date(x,origin = "2020-01-01")) %>% pull(date) %>% as.character() %>% str_remove("2020-")
+        
+        max_effect <- max(plt$fit)
+        
+        seasonal_taxa <- seasonal_taxa %>% bind_rows(data.frame(taxa, tax_lev, peak_day, max_effect, r.sq = gam_taxa_summary$r.sq, broom::tidy(gam_taxa))) 
+      }
+      
+      if(gam_taxa_summary$s.pv[2] < p.val.thresh){
+        
+        plt <- plot(gam_taxa)[[2]]
+        
+        gam_month_data <- data.frame(x = plt$x, 
+                             y = plt$fit,
+                             se = plt$se)
+        
+        peak_month <- gam_month_data %>% filter(y == max(y)) %>% pull(x)
+        
+        max_effect <- max(plt$fit)
+        
+        over_time_taxa <- over_time_taxa %>% bind_rows(data.frame(taxa, tax_lev, peak_month,max_effect, r.sq = gam_taxa_summary$r.sq, broom::tidy(gam_taxa)))
+        
+      }
+    }, error=function(e){}) #if model generates error, ignore that taxa
+  }}
+}
+
+seasonal_wide <- seasonal_taxa %>%
+  pivot_wider(names_from = term ,values_from = c(edf,ref.df,statistic,p.value)) %>% 
+  write_tsv("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST9_long-term_relative_abundance_change.tsv")
+
+over_time_wide <- over_time_taxa %>%
+  pivot_wider(names_from = term ,values_from = c(edf,ref.df,statistic,p.value)) %>% 
+  write_tsv("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST10_seasonal_relative_abundance_change.tsv")
+
+
+```
