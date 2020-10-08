@@ -5,8 +5,6 @@ date: "6/9/2020"
 output: html_document
 ---
 
-Adapted from https://benjjneb.github.io/dada2/ITS_workflow.html
-
 ## Setup
 
 ```{r setup}
@@ -24,7 +22,44 @@ knitr::opts_knit$set(root.dir = here())
 knitr::opts_chunk$set(dev.args = list(png = list(type = "cairo")))
 ```
 
+
+## Download files from SRA
+
+```{r}
+sra_metadata <- read_tsv("data/sra_metadata.tsv") %>% 
+  pivot_longer(starts_with("filename"),names_to = "file",values_to = "filename") %>% 
+  filter(!is.na(filename)) %>% 
+  mutate(file = if_else(file == "filename",1,2),
+         fq_dump_file = glue::glue("{accession}_{file}.fastq"))
+
+accessions <- unique(sra_metadata$accession)
+ 
+#Set fastq-dump executable location
+if ((grep("Windows", osVersion, ignore.case = TRUE))) { #Run on windows subsystem for linux if OS is windows
+ fastq_dump <- "wsl /usr/local/ncbi/sra-tools/bin/fasterq-dump"
+  } else{ #Run normally if OS is not Windows
+    fastq_dump <- "/usr/local/ncbi/sra-tools/bin/fasterq-dump"
+  } 
+
+#Download each file from SRA, and change file names to match original 
+for (i in accessions){
+  system(paste0(fastq_dump, " -S -O data/raw ",i))
+  
+  file_dat <- sra_metadata %>% filter(accession == i)
+  
+  for (j in 1:length(file_dat)){
+    file.rename(paste0("data/raw/",file_dat$fq_dump_file[j]),paste0("data/raw/",file_dat$filename[j]))
+    }
+  
+  }
+  
+
+```
+
+
 ## Remove primers and ambiguous bases
+
+This and several following pre-processing steps are adapted from https://benjjneb.github.io/dada2/ITS_workflow.html.
 
 List the files
 ```{r list_files}
@@ -199,3 +234,393 @@ if ((grep("Windows", osVersion, ignore.case = TRUE))) {
 write_csv(manifest, file.path(here("data/manifest.txt")))
 ```
 
+
+
+## Initial sequence processing:
+  -make demux file
+  -run DADA2 to make the ASV table and rep_seq files
+  -can be run using this code, takes ~1hr on decent laptop, less on biomix
+  
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#Import the reads with primers removed by cutadapt into qiime2
+qiime tools import \
+  --type 'SampleData[PairedEndSequencesWithQuality]' \
+  --input-path data/manifest.txt \
+  --output-path data/qiime2/dada2_filt_paired-end-demux.qza \
+  --input-format PairedEndFastqManifestPhred33
+  
+#Make Q2 read summary vis.
+qiime demux summarize \
+  --i-data data/qiime2/dada2_filt_paired-end-demux.qza \
+  --o-visualization data/qiime2/dada2_filt_paired-end-demux.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+mkdir -p data/qiime2
+
+Denoise the sequence data, determine representative sequence variants, and make ASV table
+qiime dada2 denoise-paired \
+  --i-demultiplexed-seqs data/qiime2/dada2_filt_paired-end-demux.qza \
+  --p-trunc-len-f 270 --p-trunc-len-r 191 \
+  --p-n-threads 8 \
+  --o-representative-sequences data/qiime2/pre_vs_all_unfilt_seqs.qza \
+  --o-table data/qiime2/pre_vs_all_unfilt_table.qza \
+  --o-denoising-stats data/qiime2/dada2_stats
+
+qiime feature-table summarize \
+  --i-table data/qiime2/pre_vs_all_unfilt_table.qza \
+  --o-visualization data/qiime2/pre_vs_all_unfilt_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+
+#Dada2 often produces some identical sequences of slightly different length, this merges those sequences. Similar in concept to the "collapseNoMismatch" command in dada2.
+qiime vsearch cluster-features-de-novo \
+  --i-table data/qiime2/pre_vs_all_unfilt_table.qza\
+  --i-sequences data/qiime2/pre_vs_all_unfilt_seqs.qza \
+  --p-perc-identity 1 \
+  --o-clustered-table data/qiime2/all_unfilt_table.qza \
+  --o-clustered-sequences data/qiime2/all_unfilt_seqs.qza
+
+#Make visualizations for unfiltered table and seqs
+qiime feature-table summarize \
+  --i-table data/qiime2/all_unfilt_table.qza \
+  --o-visualization data/qiime2/all_unfilt_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+  
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/all_unfilt_seqs.qza \
+  --o-visualization data/qiime2/all_unfilt_seqs.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+### Filter out sequences of unexpected length, reduces unexpectedly large branch lengths in tree based on sequence alignment
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#Filter to get sequences >= 400bp & <= 450bp
+qiime feature-table filter-features \
+  --i-table data/qiime2/all_unfilt_table.qza \
+  --m-metadata-file data/qiime2/all_unfilt_seqs.qza \
+  --p-where 'length(sequence) >= 400 AND length(sequence) <= 450' \
+  --o-filtered-table data/qiime2/pre_sepp_table.qza
+
+#Make sequences file only include those in the newly filtered table
+qiime feature-table filter-seqs \
+    --i-data data/qiime2/all_unfilt_seqs.qza \
+    --i-table data/qiime2/pre_sepp_table.qza \
+    --o-filtered-data data/qiime2/pre_sepp_seqs.qza 
+
+#make visualizations
+qiime feature-table summarize \
+  --i-table data/qiime2/pre_sepp_table.qza \
+  --o-visualization data/qiime2/pre_sepp_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/pre_sepp_seqs.qza \
+  --o-visualization data/qiime2/pre_sepp_seqs.qzv
+
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+### Make insertion tree using SEPP. 
+
+Requires a lot of memory and was run on a campus HPC. Results must be copied back before continuing.
+```{bash, eval = FALSE}
+date
+
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/bin/bash
+#SBATCH --job-name=sepp
+#SBATCH --workdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=320G
+#SBATCH -c 20
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --time=20-0
+
+hostname
+
+start=`date +%s`
+source activate qiime2-2020.2
+
+qiime fragment-insertion sepp \
+  --i-representative-sequences data/qiime2/pre_sepp_seqs.qza \
+  --i-reference-database data/reference/sepp-refs-silva-128.qza \
+  --p-threads 20 \
+  --o-tree data/qiime2/sepp_tree.qza \
+  --o-placements data/qiime2/sepp_placements.qza
+
+qiime fragment-insertion filter-features \
+  --i-table data/qiime2/pre_sepp_table.qza \
+  --i-tree data/qiime2/sepp_tree.qza \
+  --o-filtered-table data/qiime2/all_table.qza \
+  --o-removed-table data/qiime2/table_removed_by_sepp.qza
+  
+qiime feature-table summarize \
+  --i-table data/qiime2/all_table.qza \
+  --o-visualization data/qiime2/all_table.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+  
+qiime feature-table summarize \
+  --i-table data/qiime2/table_removed_by_sepp.qza \
+  --o-visualization data/qiime2/table_removed_by_sepp.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+  
+#Make sequences file only include those in the newly filtered table
+qiime feature-table filter-seqs \
+    --i-data data/qiime2/pre_sepp_seqs.qza \
+    --i-table data/qiime2/all_table.qza \
+    --o-filtered-data data/qiime2/all_seqs.qza 
+    
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/all_seqs.qza \
+  --o-visualization data/qiime2/all_seqs.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+
+ENDSSH
+```
+
+
+Make a clustered table for comparison, not used in paper analysis
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+#Cluster sequences with > 98% similarity, ie. make OTUs
+qiime vsearch cluster-features-de-novo \
+  --i-table data/qiime2/all_table.qza \
+  --i-sequences data/qiime2/all_seqs.qza \
+  --p-perc-identity 0.98 \
+  --o-clustered-table data/qiime2/all_table_98.qza \
+  --o-clustered-sequences data/qiime2/all_seqs_98.qza
+
+qiime tools export \
+  --input-path data/qiime2/all_table_98.qza \
+  --output-path data/qiime2/all_table_98
+
+mv data/qiime2/all_table_98/feature-table.biom data/qiime2/all_table_98.biom
+
+rm -r data/qiime2/all_table_98
+
+biom convert \
+  --to-tsv \
+  -i data/qiime2/all_table_98.biom \
+  -o data/qiime2/all_table_98.tsv
+
+#make visualizations
+qiime feature-table summarize \
+  --i-table data/qiime2/all_table_98.qza \
+  --o-visualization data/qiime2/all_table_98.qzv \
+  --m-sample-metadata-file data/sample-metadata.tsv
+
+qiime feature-table tabulate-seqs \
+  --i-data data/qiime2/all_seqs_98.qza \
+  --o-visualization data/qiime2/all_seqs_98.qzv
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+
+## Classify taxonomy using SILVA 
+
+Uses a lot of memory and was run on a campus HPC.
+```{bash, eval = FALSE}
+date
+
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/bin/bash
+#SBATCH --job-name=train_silva
+#SBATCH --workdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=80G
+#SBATCH -c 4
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --time=20-0
+
+hostname
+
+start=`date +%s`
+source activate qiime2-2020.2
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier data/reference/silva-132-99-nb-classifier.qza \
+  --i-reads data/qiime2/all_seqs.qza \
+  --p-n-jobs 4 \
+  --o-classification data/qiime2/silva_taxonomy.qza
+
+qiime metadata tabulate \
+  --m-input-file data/qiime2/silva_taxonomy.qza \
+  --o-visualization data/qiime2/silva_132_taxonomy.qzv
+  
+qiime taxa barplot \
+	--i-table data/qiime2/all_table.qza \
+	--i-taxonomy data/qiime2/silva_132_taxonomy.qza \
+	--m-metadata-file data/sample-metadata.tsv \
+	--o-visualization data/qiime2/silva_132_taxonomy.qzv
+  
+qiime tools export \
+  --input-path data/qiime2/silva_taxonomy.qza \
+  --output-path data/processed/silva_tax/
+
+new_header='#OTU ID\ttaxonomy\tconfidence'
+sed -i "1 s/^.*$/$new_header/" data/processed/silva_tax/taxonomy.tsv  
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+ENDSSH
+```
+
+
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+qiime tools export \
+  --input-path data/qiime2/silva_taxonomy.qza \
+  --output-path data/processed/silva_tax/
+
+new_header='#OTU ID\ttaxonomy\tconfidence'
+sed -i "1 s/^.*$/$new_header/" data/processed/silva_tax/taxonomy.tsv  
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+Make the silva taxonomy have the same format as greengenes to aid in parsing
+```{r}
+tax_ranks <- c("kingdom","phylum","class","order","family","genus","species")
+tax <- read_delim("data/processed/silva_tax/taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  mutate(for_split = taxonomy) %>% 
+  separate(for_split,tax_ranks,sep = ";") %>% 
+  mutate_at(tax_ranks,str_remove,pattern = "D_[0-9]__")
+
+tax_to_write <- tax %>% mutate(taxonomy = paste0("k__", kingdom,"; ",
+                                                 "p__", phylum,"; ",
+                                                 "c__", class, "; ",
+                                                 "o__", order, "; ",
+                                                 "f__", family, "; ",
+                                                 "g__", genus, "; ",
+                                                 "s__", species)) %>%
+                        mutate(taxonomy = str_remove(taxonomy, "; [a-z]__NA;"),
+                               taxonomy = str_remove(taxonomy, "; [a-z]__NA"),
+                               taxonomy = str_remove(taxonomy, "[a-z]__NA")) %>%
+                        select("#OTU ID", taxonomy, confidence)
+
+write_delim(tax_to_write, "data/processed/silva_taxonomy.tsv", delim = "\t")
+```
+
+
+## Export qiime2 files for further analysis 
+  -Further analysis in R and other programs.
+  -Includes creating collapsed tables and summary files
+
+```{bash}
+date
+start=`date +%s`
+
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+qiime tools export \
+  --input-path data/qiime2/all_table.qza \
+  --output-path data/processed/biom_tables/raw/
+
+#define the prefix for files generated here
+prefix=all_w_taxonomy
+
+biom add-metadata \
+  -i data/processed/biom_tables/raw/feature-table.biom \
+  -o data/processed/biom_tables/raw/${prefix}_table.biom \
+  --observation-metadata-fp data/processed/silva_taxonomy.tsv \
+  --observation-header "#OTU ID",taxonomy --sc-separated taxonomy
+
+
+biom convert \
+  --to-tsv \
+  -i data/processed/biom_tables/raw/${prefix}_table.biom \
+  -o data/processed/biom_tables/raw/${prefix}_table.tsv \
+  --header-key taxonomy
+
+source ~/miniconda2/bin/deactivate
+source ~/miniconda2/bin/activate qiime1
+
+summarize_taxa.py \
+  -i data/processed/biom_tables/raw/${prefix}_table.biom \
+  -o data/processed/biom_tables/raw/${prefix}_table_summary \
+  -m data/sample-metadata.tsv \
+  -L 2,3,4,5,6,7 \
+  --suppress_biom_table_output
+
+collapse_samples.py \
+  -b data/processed/biom_tables/raw/${prefix}_table.biom \
+  -m data/sample-metadata.tsv \
+  --output_biom_fp data/processed/biom_tables/raw/collapsed_${prefix}_table.biom \
+  --output_mapping_fp data/processed/biom_tables/raw/collapsed_mapfile_${prefix}.txt \
+  --collapse_mode sum \
+  --collapse_fields Description
+
+biom convert \
+  --to-tsv \
+  -i data/processed/biom_tables/raw/collapsed_${prefix}_table.biom \
+  -o data/processed/biom_tables/raw/collapsed_${prefix}_table.tsv \
+  --header-key taxonomy
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+##Determine contaminants in sequencing data based on alignment with known lab contaminant organisms
+```{bash}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2020.2
+
+prefix=all_w_taxonomy
+
+#filter common lab contaminants
+
+qiime tools import \
+  --input-path data/processed/lab_contaminants_full.fasta \
+  --type 'FeatureData[Sequence]' \
+  --output-path data/processed/lab_contaminants.qza
+
+qiime quality-control exclude-seqs \
+  --i-query-sequences data/qiime2/all_seqs.qza \
+  --i-reference-sequences data/processed/lab_contaminants.qza \
+  --o-sequence-hits data/processed/${prefix}_lab_contaminants_table.qza \
+  --o-sequence-misses data/processed/${prefix}_non_contaminants_table.qza \
+  --p-perc-identity 0.99 \
+  --p-perc-query-aligned 0.99
+
+qiime tools export \
+  --input-path data/processed/${prefix}_lab_contaminants_table.qza \
+  --output-path data/processed/seqs_from_lab_contaminants
+
+awk 'sub(/^>/, "")' data/processed/seqs_from_lab_contaminants/dna-sequences.fasta > data/processed/lab_contaminant_seqs_in_concrete.txt
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+
+```{r}
+lab_contaminant_seqs_in_concrete <- read.table("data/processed/lab_contaminant_seqs_in_concrete.txt", quote="\"", comment.char="") %>% select(otu_id = V1)
+
+taxonomy <- read.delim("data/processed/silva_taxonomy.tsv") %>% select(otu_id = X.OTU.ID, taxonomy)
+
+contams_w_taxonomy <- left_join(lab_contaminant_seqs_in_concrete,taxonomy)
+```

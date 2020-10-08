@@ -1,0 +1,2079 @@
+---
+title: "EMP comparison"
+author: "Anders Kiledal"
+date: "1/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = here::here())
+```
+
+Here, the concrete cylinder series is compared to samples in the Earth Microbiome Project and a study of microbial communities in tapwater from Amy Pruden's lab at Virginia Tech.
+
+The concrete samples are compared with several levels of processing. 
+  1. Raw data as generated in QIIME2 with the DADA2 denoising procedure. 
+  2. Decontaminated samples, with suspected contaminants removed. 
+  3. Concrete samples with only suspected contaminants retained.
+
+The following steps are employed for each comparison. 
+  * Concrete sequences were processed with DADA2 and make use of paired end reads, while EMP and tapwater sequences were processed with deblur and only use forward reads. The EMP paper used 90bp reads because this was the length used in some earlier samples. Additionally, EMP and tapwater samples used primers 515F and 806R, while concrete samples were amplified with 357F and 806R. So, while the regions overlap due to the longer concrete sample sequences, trimming must be used. Additionally, the different primers likely introduce different biases. Concrete sequences are trimmed to the corresponding 90bp with the EMP script GetV4Region.py. 
+  \* Tables are imported as Qiime 2 objects, if they have not already been, and summaries are produced. 
+  \* Tables and sequences are merged with QIIME2. 
+  \* OTU clustering is performed with vsearch at a 99% similarity threshold. This high threshold was chosen due to the short sequence length and because sequences were processed with methods designed to produce exact amplicon sequence variants (denoising). EMP and tapwater samples were processed with deblur, while concrete samples were processed with DADA2.
+
+# Raw concrete comparison with EMP and tapwater
+
+Select EMP samples to include: 5k subset, blank controls, alkaline samples
+
+```{r emp sample selection}
+library(tidyverse)
+emp_tapwater_concrete_map <- read_delim("data/processed/emp_data/emp_tapwater_concrete_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  mutate(empo_3 = if_else(env_material == "dust" | env_material == "sebum", env_material, empo_3)) %>%
+  mutate(empo_3 = if_else(empo_3 %in% c("CPVC", "Copper", "CopperLead", "Brass"), "tapwater", empo_3)) %>%
+  mutate(empo_3 = if_else(ph >= 11 & !is.na(ph), "hyperalkaline", empo_3)) %>%
+  mutate(include_in_concrete_comparison = if_else(empo_3 == "Inlet", FALSE, include_in_concrete_comparison))
+
+
+emp_samples_per_group <- emp_tapwater_concrete_map %>% 
+  filter(include_in_concrete_comparison == TRUE) %>% 
+  group_by(empo_3) %>% 
+  mutate(num_in_group = n()) %>% 
+  select(empo_3, num_in_group) %>% 
+  distinct()
+
+write_delim(emp_tapwater_concrete_map, "data/processed/emp_data/emp_tapwater_concrete_map.tsv", "\t")
+
+emp_tapwater_concrete_map %>% filter(include_in_concrete_comparison == TRUE) %>% write_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t")
+```
+
+Export concrete samples, and trim to the same 90bp
+
+```{bash export concrete to tsv and trim to 90 bp}
+source ~/miniconda2/bin/activate qiime2-2019.10
+
+qiime tools export \
+  --input-path data/processed/biom_tables/raw/all_w_taxonomy_table.biom_seqs.qza \
+  --output-path data/processed/biom_tables/raw/all_w_taxonomy_table.biom_seqs
+
+python analysis/source_tracker/GetV4Region.py -i data/processed/biom_tables/raw/all_w_taxonomy_table.biom_seqs/dna-sequences.fasta -l 90 -s > data/processed/emp_data/tapwater_pruden/90bp_concrete_seqs.fasta
+```
+
+```{r filter 90 bp table}
+library(readr)
+library(tidyverse)
+library(qiime2R)
+x90bp <- read_delim("data/processed/emp_data/tapwater_pruden/90bp_concrete_seqs.fasta", ">", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)
+x90bp <- data.frame(lapply(x90bp, na.omit)) %>% mutate('#OTU ID' = X1, q2_feature_id = X2) %>% select('#OTU ID',q2_feature_id)
+
+table <- read_qza("data/processed/biom_tables/raw/all_w_taxonomy_table.biom_table.qza") %>% .$data %>% as.data.frame() %>% rownames_to_column("#OTU ID")
+
+filtered_table <- table %>% filter(`#OTU ID` %in% x90bp$q2_feature_id)
+
+write.table(filtered_table,file = "data/processed/biom_tables/raw/filtered_90bp_table.tsv", quote=FALSE, sep='\t', row.names = FALSE)
+```
+
+## Run the analysis on biomix
+
+```{bash raw emp pipeline}
+date
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/bin/bash
+#SBATCH --job-name=raw_emp
+#SBATCH --chdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=800G
+#SBATCH -c 48
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --time=20-0
+
+date
+hostname
+start=`date +%s`
+
+###Script starts here###
+
+source activate qiime2-2019.10
+
+##################
+## IMPORT FILES##
+#################
+qiime tools import \
+  --input-path data/processed/emp_data/tapwater_pruden/90bp_concrete_seqs.fasta \
+  --output-path data/processed/emp_data/tapwater_pruden/90bp_concrete_seqs.qza \
+  --type 'FeatureData[Sequence]'
+
+biom convert \
+  -i data/processed/biom_tables/raw/filtered_90bp_table.tsv \
+  -o data/processed/biom_tables/raw/filtered_90bp_table.biom \
+  --to-hdf5 \
+  --table-type="OTU table"
+
+qiime tools import \
+  --input-path data/processed/biom_tables/raw/filtered_90bp_table.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path data/processed/biom_tables/raw/filtered_90bp_table.qza
+
+
+qiime tools import \
+  --input-path data/processed/emp_data/emp_90.seq.fa \
+  --output-path data/processed/emp_data/emp_deblur_90bp.release1_seqs.qza \
+  --type 'FeatureData[Sequence]'
+
+qiime tools import \
+  --input-path data/processed/emp_data/emp_deblur_90bp.release1.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path data/processed/emp_data/emp_deblur_90bp.release1_table.qza
+
+
+#Filter emp table to only include 2k subset and negative controls
+qiime feature-table filter-samples \
+  --i-table data/processed/emp_data/emp_deblur_90bp.release1_table.qza \
+  --m-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv \
+  --o-filtered-table data/processed/emp_data/expanded_2ksubset_emp_deblur_90bp.release1_table.qza
+
+# --p-where "[include_in_concrete_comparison] = 'TRUE'" \
+
+##################
+## MERGE FILES ##
+#################
+
+qiime feature-table merge \
+  --i-tables data/processed/biom_tables/raw/filtered_90bp_table.qza \
+  --i-tables data/processed/emp_data/tapwater_pruden/tapwater_table.qza \
+  --i-tables data/processed/emp_data/expanded_2ksubset_emp_deblur_90bp.release1_table.qza \
+  --o-merged-table data/processed/emp_data/emp_tapwater_and_concrete_table.qza
+
+#Included to filter out some "inlet" tapwater samples
+qiime feature-table filter-samples \
+  --i-table data/processed/emp_data/emp_tapwater_and_concrete_table.qza \
+  --m-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv \
+  --o-filtered-table data/processed/emp_data/emp_tapwater_and_concrete_table.qza
+
+qiime feature-table summarize \
+  --i-table data/processed/emp_data/emp_tapwater_and_concrete_table.qza \
+  --o-visualization data/processed/emp_data/emp_tapwater_and_concrete_table.qzv \
+  --m-sample-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv
+
+qiime feature-table merge-seqs \
+  --i-data data/processed/emp_data/tapwater_pruden/tapwater_seqs.qza \
+  --i-data data/processed/emp_data/tapwater_pruden/90bp_concrete_seqs.qza \
+  --i-data data/processed/emp_data/emp_deblur_90bp.release1_seqs.qza \
+  --o-merged-data data/processed/emp_data/emp_tapwater_and_concrete_seqs.qza
+
+##############################################
+## ASSIGN TAX AND PLACE SEQS ON SILVA TREE ##
+############################################
+
+# qiime fragment-insertion sepp \
+#   --i-representative-sequences data/processed/emp_data/emp_tapwater_and_concrete_seqs.qza \
+#   --i-reference-database data/reference/sepp-refs-silva-128.qza \
+#   --p-threads 10 \
+#   --o-tree data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza \
+#   --o-placements data/processed/emp_data/emp_concrete_and_tapwater_sepp_placements.qza
+
+qiime fragment-insertion filter-features \
+  --i-table data/processed/emp_data/emp_tapwater_and_concrete_table.qza \
+  --i-tree data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza \
+  --o-filtered-table data/processed/emp_data/sepp_filt_emp_tapwater_and_concrete_table.qza \
+  --o-removed-table data/processed/emp_data/sepp_removed_table.qza
+
+qiime feature-table filter-seqs \
+  --i-data data/processed/emp_data/emp_tapwater_and_concrete_seqs.qza \
+  --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_concrete_table.qza \
+  --o-filtered-data data/processed/emp_data/emp_tapwater_and_concrete_table_filt_seqs.qza
+
+# qiime feature-classifier classify-sklearn \
+#  --i-classifier data/reference/silva-132-99-515-806-nb-classifier.qza \
+#  --i-reads data/processed/emp_data/emp_tapwater_and_concrete_table_filt_seqs.qza \
+#  --p-n-jobs 10 \
+#  --o-classification data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza
+# 
+# qiime metadata tabulate \
+#  --m-input-file data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza \
+#  --o-visualization data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qzv
+
+
+##############################
+## MAKE 99% SIMILARITY OTUS ##
+##############################
+
+qiime vsearch cluster-features-de-novo \
+  --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_concrete_table.qza \
+  --i-sequences data/processed/emp_data/emp_tapwater_and_concrete_table_filt_seqs.qza \
+  --p-threads 10 \
+  --p-perc-identity 0.99 \
+  --o-clustered-table data/processed/emp_data/clust99_emp_tapwater_and_concrete_table.qza \
+  --o-clustered-sequences data/processed/emp_data/clust99_emp_tapwater_and_concrete_seqs.qza
+  
+#Only works with modified v-search to export .uc file  
+mv /home/akiledal/vsearch.tsv data/processed/emp_data/clust99_emp_tapwater_and_concrete_otu_membership.tsv
+
+qiime feature-table summarize \
+  --i-table data/processed/emp_data/clust99_emp_tapwater_and_concrete_table.qza \
+  --o-visualization data/processed/emp_data/clust99_emp_tapwater_and_concrete_table.qzv \
+  --m-sample-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv
+
+rm -rf data/processed/emp_data/core-metrics-results_emp_concrete_tapwater
+
+mkdir /scratch/akiledal/%j
+
+cp data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza /scratch/akiledal/%j
+cp data/processed/emp_data/clust99_emp_tapwater_and_concrete_table.qza /scratch/akiledal/%j
+cp data/processed/emp_data/emp_and_tapwater_comparison_map.tsv /scratch/akiledal/%j
+
+start_q=`date +%s`
+
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny /scratch/akiledal/%j/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/clust99_emp_tapwater_and_concrete_table.qza \
+  --p-sampling-depth 1000 \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --p-n-jobs 48 \
+  --output-dir data/processed/emp_data/core-metrics-results_emp_concrete_tapwater
+
+echo ""Core metrics duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp -r data/processed/emp_data/core-metrics-results_emp_concrete_tapwater /scratch/akiledal/%j/core-metrics-results_emp_concrete_tapwater
+
+start_q=`date +%s`
+
+qiime diversity beta-phylogenetic \
+  --i-phylogeny /scratch/akiledal/%j/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/core-metrics-results_emp_concrete_tapwater/rarefied_table.qza \
+  --p-metric 'generalized_unifrac' \
+  --p-n-jobs 48 \
+  --p-alpha 0.5 \
+  --o-distance-matrix /scratch/akiledal/%j/general_0_5_unifrac_distance_matrix.qza
+
+echo ""Generalized UniFrac duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp /scratch/akiledal/%j/general_0_5_unifrac_distance_matrix.qza data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/
+
+start_q=`date +%s`
+
+qiime diversity pcoa \
+  --i-distance-matrix data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/general_0_5_unifrac_distance_matrix.qza \
+  --o-pcoa data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/general_0_5_unifrac_pcoa.qza
+  
+echo ""Pcoa duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+qiime emperor plot \
+  --i-pcoa data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/general_0_5_unifrac_pcoa.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/general_0_5_unifrac_emperor.qzv
+
+
+##Variance adjusted unifrac dist/pcoa/emperor
+start_q=`date +%s`
+qiime diversity beta-phylogenetic \
+  --i-phylogeny /scratch/akiledal/%j/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/core-metrics-results_emp_concrete_tapwater/rarefied_table.qza \
+  --p-metric 'weighted_unifrac' \
+  --p-variance-adjusted \
+  --p-n-jobs 48 \
+  --o-distance-matrix /scratch/akiledal/%j/varadjust_unifrac_distance_matrix.qza
+
+echo ""Variance adjusted UniFrac duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp /scratch/akiledal/%j/varadjust_unifrac_distance_matrix.qza data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/
+
+qiime diversity pcoa \
+  --i-distance-matrix data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/varadjust_unifrac_distance_matrix.qza \
+  --o-pcoa data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/varadjust_unifrac_pcoa.qza
+
+qiime emperor plot \
+  --i-pcoa data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/varadjust_unifrac_pcoa.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/varadjust_unifrac_emperor.qzv
+
+
+
+##Aitchison dist/pcoa/emperor
+# start_q=`date +%s`
+# qiime diversity beta \
+#   --i-table /scratch/akiledal/%j/clust99_emp_tapwater_and_concrete_table.qza \
+#   --p-metric 'aitchison' \
+#   --p-n-jobs 48 \
+#   --o-distance-matrix /scratch/akiledal/%j/aitch_distance_matrix.qza
+# 
+# echo ""Aitchison duration: $((($(date +%s)-$start_q)/60)) minutes""
+# 
+# cp /scratch/akiledal/%j/aitch_distance_matrix.qza data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/
+# 
+# qiime diversity pcoa \
+#   --i-distance-matrix data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/aitch_distance_matrix.qza \
+#   --o-pcoa data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/aitch_pcoa.qza
+# 
+# qiime emperor plot \
+#   --i-pcoa data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/aitch_pcoa.qza \
+#   --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+#   --o-visualization data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/aitch_emperor.qzv
+
+
+start_q=`date +%s`
+
+qiime diversity beta-group-significance \
+  --i-distance-matrix /scratch/akiledal/%j/core-metrics-results_emp_concrete_tapwater/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --m-metadata-column ""empo_2"" \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/weighted_unifrac_group_sig.qzv \
+  --p-pairwise
+
+echo ""Beta significance duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+rm -rf /scratch/akiledal/%j
+
+###Script ends here###
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+ENDSSH
+```
+
+# Decontaminated comparison to EMP
+
+```{bash export decontam concrete and trim to 90 bp}
+source ~/miniconda2/bin/activate qiime2-2019.10
+
+qiime tools export \
+  --input-path data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_seqs.qza \
+  --output-path data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_seqs
+
+python analysis/source_tracker/GetV4Region.py -i data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_seqs/dna-sequences.fasta -l 90 -s > data/processed/emp_data/tapwater_pruden/90bp_decontam_concrete_seqs.fasta
+```
+
+```{r filter 90bp decontam concrete table}
+library(readr)
+library(tidyverse)
+library(qiime2R)
+x90bp <- read_delim("data/processed/emp_data/tapwater_pruden/90bp_decontam_concrete_seqs.fasta", ">", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)
+x90bp <- data.frame(lapply(x90bp, na.omit)) %>% mutate('#OTU ID' = X1, q2_feature_id = X2) %>% select('#OTU ID',q2_feature_id)
+
+table <- read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_table.qza") %>% .$data %>% as.data.frame() %>% rownames_to_column("#OTU ID")
+
+filtered_table <- table %>% filter(`#OTU ID` %in% x90bp$q2_feature_id)
+
+write.table(filtered_table,file = "data/processed/biom_tables/decontaminated/filtered_90bp_decontam_table.tsv", quote=FALSE, sep='\t', row.names = FALSE)
+```
+
+## Run analysis on biomix
+
+```{bash emp decontam pipeline}
+date
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/bin/bash
+#SBATCH --job-name=decon_emp
+#SBATCH --chdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=800G
+#SBATCH -c 48
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --time=20-0
+
+date
+hostname
+start=`date +%s`
+
+###Script starts here###
+
+source activate qiime2-2019.10
+
+
+qiime tools import \
+  --input-path data/processed/emp_data/tapwater_pruden/90bp_decontam_concrete_seqs.fasta \
+  --output-path data/processed/emp_data/tapwater_pruden/90bp_decontam_concrete_seqs.qza \
+  --type 'FeatureData[Sequence]'
+
+biom convert \
+  -i data/processed/biom_tables/decontaminated/filtered_90bp_decontam_table.tsv \
+  -o data/processed/biom_tables/decontaminated/filtered_90bp_decontam_table.biom \
+  --to-hdf5 \
+  --table-type="OTU table"
+
+qiime tools import \
+  --input-path data/processed/biom_tables/decontaminated/filtered_90bp_decontam_table.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path data/processed/biom_tables/decontaminated/filtered_90bp_decontam_table.qza
+
+qiime feature-table merge \
+  --i-tables data/processed/biom_tables/decontaminated/filtered_90bp_decontam_table.qza \
+  --i-tables data/processed/emp_data/tapwater_pruden/tapwater_table.qza \
+  --i-tables data/processed/emp_data/expanded_2ksubset_emp_deblur_90bp.release1_table.qza \
+  --o-merged-table data/processed/emp_data/emp_tapwater_and_decontam_concrete_table.qza
+
+qiime feature-table filter-samples \
+  --i-table data/processed/emp_data/emp_tapwater_and_decontam_concrete_table.qza \
+  --m-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv \
+  --o-filtered-table data/processed/emp_data/emp_tapwater_and_decontam_concrete_table.qza
+
+qiime fragment-insertion filter-features \
+  --i-table data/processed/emp_data/emp_tapwater_and_decontam_concrete_table.qza \
+  --i-tree data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza \
+  --o-filtered-table data/processed/emp_data/sepp_filt_emp_tapwater_and_decontam_concrete_table.qza \
+  --o-removed-table data/processed/emp_data/sepp_removed_table.qza
+
+qiime feature-table summarize \
+  --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_decontam_concrete_table.qza \
+  --o-visualization data/processed/emp_data/sepp_filt_emp_tapwater_and_decontam_concrete_table.qzv \
+  --m-sample-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv
+
+qiime feature-table merge-seqs \
+  --i-data data/processed/emp_data/tapwater_pruden/tapwater_seqs.qza \
+  --i-data data/processed/emp_data/tapwater_pruden/90bp_decontam_concrete_seqs.qza \
+  --i-data data/processed/emp_data/emp_deblur_90bp.release1_seqs.qza \
+  --o-merged-data data/processed/emp_data/emp_tapwater_and_decontam_concrete_seqs.qza
+
+qiime feature-table filter-seqs \
+  --i-data data/processed/emp_data/emp_tapwater_and_decontam_concrete_seqs.qza \
+  --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_decontam_concrete_table.qza \
+  --o-filtered-data data/processed/emp_data/emp_tapwater_and_decontam_concrete_table_filt_seqs.qza
+
+#99% sequence identity
+qiime vsearch cluster-features-de-novo \
+  --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_decontam_concrete_table.qza \
+  --i-sequences data/processed/emp_data/emp_tapwater_and_decontam_concrete_table_filt_seqs.qza \
+  --p-threads 8 \
+  --p-perc-identity 0.99 \
+  --o-clustered-table data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_decontam_concrete_table.qza \
+  --o-clustered-sequences data/processed/emp_data/clust99_emp_tapwater_and_decontam_concrete_seqs.qza
+
+#Only works with modified v-search to export .uc file  
+mv /home/akiledal/vsearch.tsv data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_decontam_concrete_otu_membership.tsv
+  
+qiime feature-table summarize \
+  --i-table data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_decontam_concrete_table.qza \
+  --o-visualization data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_decontam_concrete_table.qzv \
+  --m-sample-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv
+  
+rm -rf data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater
+
+mkdir -p /scratch/akiledal/%j
+
+cp data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza /scratch/akiledal/%j
+cp data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_decontam_concrete_table.qza /scratch/akiledal/%j
+cp data/processed/emp_data/emp_and_tapwater_comparison_map.tsv /scratch/akiledal/%j
+
+
+start_q=`date +%s`
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny /scratch/akiledal/%j/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/sepp_filt_clust99_emp_tapwater_and_decontam_concrete_table.qza \
+  --p-sampling-depth 1000 \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --p-n-jobs 48 \
+  --output-dir data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater
+
+echo ""Core metrics duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp -r data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater /scratch/akiledal/%j/core-metrics-results_emp_decontam_concrete_tapwater
+
+
+##Generalized (0.5) unifrac dist/pcoa/emperor
+start_q=`date +%s`
+qiime diversity beta-phylogenetic \
+  --i-phylogeny /scratch/akiledal/%j/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/core-metrics-results_emp_decontam_concrete_tapwater/rarefied_table.qza \
+  --p-metric 'generalized_unifrac' \
+  --p-n-jobs 48 \
+  --p-alpha 0.5 \
+  --o-distance-matrix /scratch/akiledal/%j/general_0_5_unifrac_distance_matrix.qza
+
+echo ""Generalized UniFrac duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp /scratch/akiledal/%j/general_0_5_unifrac_distance_matrix.qza data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/
+
+start_q=`date +%s`
+
+qiime diversity pcoa \
+  --i-distance-matrix data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_distance_matrix.qza \
+  --o-pcoa data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_pcoa.qza
+  
+echo ""Pcoa duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+qiime emperor plot \
+  --i-pcoa data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_pcoa.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_emperor.qzv
+
+
+
+##Variance adjusted unifrac dist/pcoa/emperor
+start_q=`date +%s`
+qiime diversity beta-phylogenetic \
+  --i-phylogeny /scratch/akiledal/%j/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/core-metrics-results_emp_decontam_concrete_tapwater/rarefied_table.qza \
+  --p-metric 'weighted_unifrac' \
+  --p-variance-adjusted \
+  --p-n-jobs 48 \
+  --o-distance-matrix /scratch/akiledal/%j/varadjust_unifrac_distance_matrix.qza
+
+echo ""Generalized UniFrac duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp /scratch/akiledal/%j/varadjust_unifrac_distance_matrix.qza data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/
+
+start_q=`date +%s`
+
+qiime diversity pcoa \
+  --i-distance-matrix data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/varadjust_unifrac_distance_matrix.qza \
+  --o-pcoa data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/varadjust_unifrac_pcoa.qza
+  
+echo ""Pcoa duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+qiime emperor plot \
+  --i-pcoa data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/varadjust_unifrac_pcoa.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/varadjust_unifrac_emperor.qzv
+  
+  
+  
+
+##Aitchison dist/pcoa/emperor
+# start_q=`date +%s`
+# qiime diversity beta \
+#   --i-table /scratch/akiledal/%j/sepp_filt_clust99_emp_tapwater_and_decontam_concrete_table.qza \
+#   --p-metric 'aitchison' \
+#   --p-n-jobs 32 \
+#   --o-distance-matrix /scratch/akiledal/%j/decontam_aitch_distance_matrix.qza
+# 
+# echo ""Aitchison UniFrac duration: $((($(date +%s)-$start_q)/60)) minutes""
+# 
+# cp /scratch/akiledal/%j/decontam_aitch_distance_matrix.qza data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/
+# 
+# start_q=`date +%s`
+# 
+# qiime diversity pcoa \
+#   --i-distance-matrix data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/decontam_aitch_distance_matrix.qza \
+#   --o-pcoa data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/decontam_aitch_pcoa.qza
+#   
+# echo ""Pcoa duration: $((($(date +%s)-$start_q)/60)) minutes""
+# 
+# qiime emperor plot \
+#   --i-pcoa data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/decontam_aitch_pcoa.qza \
+#   --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+#   --o-visualization data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/decontam_aitch_emperor.qzv
+  
+
+#Beta significance
+start_q=`date +%s`
+qiime diversity beta-group-significance \
+  --i-distance-matrix /scratch/akiledal/%j/core-metrics-results_emp_decontam_concrete_tapwater/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --m-metadata-column "empo_2" \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/weighted_unifrac_group_sig.qzv \
+  --p-pairwise
+
+echo "Beta significance duration: $((($(date +%s)-$start_q)/60)) minutes"
+
+rm -rf /scratch/akiledal/%j
+
+###Script ends here###
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+ENDSSH
+```
+
+## PCOA visualization
+
+```{r}
+library(tidyverse)
+library(qiime2R)
+library(glue)
+library(patchwork)
+library(ragg)
+library(ggtext)
+
+emp_tapwater_concrete_map <- read_delim("data/processed/emp_data/emp_tapwater_concrete_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  dplyr::rename(sample = "#SampleID") %>% filter(include_in_concrete_comparison == TRUE)
+
+pcoa <- read_qza("data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_pcoa.qza")$data
+
+series_samples <- c("Concrete", "FlyAsh", "Powder", "Sand", "Gravel")
+
+empo3 <- levels(as.factor(emp_tapwater_concrete_map$empo_3)) %>% 
+  data.frame(empo_3 = .) %>% 
+  cbind( colors = c("grey80", "#ff0000", "#f27304", "#f27304", "#ff0000", "#ff0000", "black", "#fcc688", "maroon2", "maroon2", "#52ff3c", "#500261", "#80c99b", "#045b04", "#80c99b", "maroon2", "maroon2",  "#ff0000", "#a36f23", "#765f3d", "#6b440b", "#ffff00", "#ababab", "#5e5e5e", "#7cecf4", "#0000ff","#000098")) %>%
+  mutate(shapes = case_when(empo_3 == "Powder" ~ 16,
+                            empo_3 == "Gravel" ~ 15,
+                            empo_3 == "FlyAsh" ~ 17,
+                            empo_3 == "Sand" ~ 18, 
+                            empo_3 == "Concrete" ~ 16)) %>% 
+  mutate(shapes = if_else(is.na(shapes), 16, shapes),
+         empo_3 = as.character(empo_3), colors = as.character(colors),
+         empo_3 = if_else(empo_3 %in% series_samples, glue("**{empo_3}**"), empo_3)) #%>%
+  #filter(!empo_3 %in% series_samples)
+
+variance_explained <- pcoa$ProportionExplained %>%
+  gather("pc", "variance_explained") %>%
+  mutate(percent_variance_explained = glue("{round(variance_explained * 100,2)} %"))
+
+long_pcoa <- pcoa$Vectors %>% 
+  as.data.frame() %>%
+  select(sample = "SampleID", PC1, PC2, PC3) %>%
+  left_join(emp_tapwater_concrete_map %>% select(sample,empo_3)) %>% 
+  mutate(our_sample = if_else(empo_3 %in% series_samples,TRUE, FALSE) ,
+         empo_3 = if_else(empo_3 %in% series_samples, glue("**{empo_3}**"), empo_3))
+  
+  
+pc_1_2 <- long_pcoa %>% filter(!empo_3 %in% series_samples) %>% ggplot(aes(PC1, PC2, color = factor(empo_3, levels = empo3$empo_3), label2 = sample, shape = factor(empo_3, levels = empo3$empo_3))) + 
+  geom_point(size = 0.4, alpha = 0.4) +
+  geom_point(data = long_pcoa %>% filter(our_sample == TRUE), size = 2.5, alpha = 0.8) +
+  theme_bw() +
+  coord_fixed(ratio = variance_explained$variance_explained[2] / variance_explained$variance_explained[1]) +
+  scale_color_manual(values = empo3$colors) +
+  scale_shape_manual(values = empo3$shapes) +
+  labs(x = NULL,
+       y = glue("PC2 [{variance_explained$percent_variance_explained[2]}]")) + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(), 
+        legend.position = "none") + 
+  guides(size = FALSE) 
+  
+
+pc_1_3 <- long_pcoa %>% filter(!empo_3 %in% series_samples) %>% ggplot(aes(PC1, PC3, color = factor(empo_3, levels = empo3$empo_3), label2 = sample, shape = factor(empo_3, levels = empo3$empo_3))) + 
+  geom_point(size = 0.4, alpha = 0.4) +
+  geom_point(data = long_pcoa %>% filter(our_sample == TRUE), size = 2.5, alpha = 0.8) +
+  theme_bw() +
+  coord_fixed(ratio = variance_explained$variance_explained[3] / variance_explained$variance_explained[1]) +
+  scale_color_manual(values = empo3$colors) +
+  scale_shape_manual(values = empo3$shapes) +
+  labs(x = glue("PC1 [{variance_explained$percent_variance_explained[1]}]"),
+       y = glue("PC3 [{variance_explained$percent_variance_explained[3]}]"),
+       color = "Sample type (EMPO level 3)",
+       shape = "Sample type (EMPO level 3)") +
+  guides(size = FALSE) +
+  theme(legend.text = element_markdown(size = 8))
+
+
+(pcoa_plot <- pc_1_2 / pc_1_3 + plot_layout(guides = "collect") + 
+    plot_annotation(title = "PCoA of Concrete and EMP samples", subtitle = "Computed from generalized (0.5) UniFrac distances") + 
+    ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/EMP_PCoA_generalised_0.5_UniFrac.png", type = "cairo", width = 6.8, height = 4, scale = 1.2))
+
+(pcoa_plot_no_title <- pc_1_2 / pc_1_3 + plot_layout(guides = "collect")) #& theme(legend.text = element_markdown(size = 8))) 
+
+pcoa_plot_no_title + ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/EMP_PCoA_generalised_0.5_UniFrac_no_title.png", type = "cairo", width = 6.8, height = 3.8, scale = 1.2)
+```
+
+
+## Sourcetraker on decontam. concrete EMP comparison
+
+Make new metadata for the grouped table
+
+```{r metadata for grouped emp, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+
+emp_tapwater_concrete_map <- read_delim("data/processed/emp_data/emp_tapwater_concrete_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  mutate(grouping_column = if_else(SourceSink == "sink", `#SampleID`, empo_3))
+
+grouped_env_map <- data.frame("#SampleID" = emp_tapwater_concrete_map$grouping_column) %>%
+  distinct()
+
+sinks <- emp_tapwater_concrete_map %>% 
+  filter(SourceSink =="sink") %>% 
+  select(grouping_column) %>% 
+  distinct() %>% 
+  pull(grouping_column)
+
+grouped_env_map <- grouped_env_map %>% 
+  dplyr::rename("#SampleID" = X.SampleID) %>%
+  mutate(Env = `#SampleID`, SourceSink = if_else(Env %in% sinks, "sink", "source")) %>% 
+  left_join(emp_tapwater_concrete_map %>% select(empo_2, empo_3, Env = "grouping_column")) %>%
+  mutate(empo_3 = if_else(empo_3 == "Inlet", "Water (non-saline)", empo_3),
+         Env = if_else(Env == "Inlet", "Water (non-saline)", Env)) %>%
+  #mutate(Env = if_else(SourceSink == "source", empo_3, Env)) %>% 
+  distinct()
+
+write_delim(grouped_env_map, "data/processed/emp_data/grouped_emp_and_tapwater_comparison_map.tsv", delim = "\t")
+
+```
+
+Make a grouped table so that sourcetracker can be more efficiently be run. Sourcetracker does this internally anyway.
+
+```{bash group decontam emp table}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2019.10
+
+cd data/processed/emp_data/
+
+qiime feature-table group \
+  --i-table sepp_filt_clust99_emp_tapwater_and_decontam_concrete_table.qza \
+  --p-axis 'sample' \
+  --m-metadata-file emp_tapwater_concrete_map.tsv \
+  --m-metadata-column 'Env' \
+  --p-mode 'sum' \
+  --o-grouped-table grouped_table_for_st.qza
+
+qiime feature-table summarize \
+  --i-table grouped_table_for_st.qza \
+  --o-visualization grouped_table_for_st.qzv \
+  --m-sample-metadata-file grouped_emp_and_tapwater_comparison_map.tsv
+
+qiime tools export \
+  --input-path grouped_table_for_st.qza \
+  --output-path grouped_table_for_st
+
+mv grouped_table_for_st/feature-table.biom grouped_table_for_st.biom
+rm -r grouped_table_for_st
+
+source ~/miniconda2/bin/activate qiime1
+
+biom convert --to-tsv -i grouped_table_for_st.biom -o grouped_table_for_st.tsv
+  
+###Script ends here###
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+### Core metrics on grouped table
+
+```{bash core metrics on grouped emp table}
+date
+start=`date +%s`
+source ~/miniconda2/bin/activate qiime2-2019.10
+
+cd data/processed/emp_data/
+
+find -type d -name 'core_met_grouped_emp_tapwater_concrete_filtered' -prune -exec rm -rf {} \;
+
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table grouped_table_for_st.qza \
+  --p-sampling-depth 1000 \
+  --m-metadata-file grouped_emp_and_tapwater_comparison_map.tsv \
+  --p-n-jobs 4 \
+  --output-dir core_met_grouped_emp_tapwater_concrete_filtered
+
+###Script ends here###
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+Heatmap of grouped table distances
+
+```{r make heatmap of grouped emp distances}
+library(qiime2R)
+library(tidyverse)
+library(pheatmap)
+library(ggtree)
+
+#dists <- read_qza("data/processed/emp_data/core_met_grouped_emp_tapwater_concrete_filtered/bray_curtis_distance_matrix.qza") %>% .$data
+
+dists <- unzip("data/processed/emp_data/core_met_grouped_emp_tapwater_concrete_filtered/weighted_unifrac_distance_matrix.qza",exdir = tempdir()) 
+dists <- read_delim(dists[str_detect(dists,"data/distance-matrix.tsv")],delim = "\t") %>% column_to_rownames("X1") %>% as.dist()
+
+dist_tree <- hclust(dists,method = "average")
+
+plotly::plot_dendro(as.dendrogram(dist_tree))
+
+ggtree(dist_tree) + geom_tiplab() + xlim_tree(9) + ggsave("c:/Users/eande/Desktop/emp_tree.png", type = "cairo", height = 20, width = 8)
+
+```
+
+Remove really low count samples from table for sourcetracking
+
+```{r filter low count samples for sourcetracking}
+library(biomformat)
+
+grouped_emp_table <- read_qza("data/processed/emp_data/grouped_table_for_st.qza") %>% .$data
+
+low_count_samples <- which(colSums(grouped_emp_table) > 1000)
+
+filtered_grouped_emp_table <- grouped_emp_table[,low_count_samples ] %>% as.data.frame() %>% rownames_to_column("#OTU ID") %>% select("#OTU ID", everything())
+
+write_delim(filtered_grouped_emp_table,"data/processed/emp_data/greater_than_1000_grouped_table_for_st.tsv",delim = "\t")
+
+```
+
+
+### Sourcetracker2 w/ feature assignment
+
+```{bash fun sourcetracker with feature assignments}
+date
+start=`date +%s`
+
+source ~/miniconda2/bin/activate st2
+
+cd /mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/
+
+rm -rf st_out_decontam_w_feature_assignements/
+
+#With feature assignments
+sourcetracker2 gibbs \
+   --per_sink_feature_assignments \
+   --jobs 5 \
+   -i greater_than_1000_grouped_table_for_st.tsv \
+   -m grouped_emp_and_tapwater_comparison_map.tsv \
+   --output_dir st_out_decontam_w_feature_assignements/ \
+   --sink_rarefaction_depth 1000 \
+   --source_rarefaction_depth 4000
+
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+Look at likely source of ASVs based on SourceTracker feature assignments
+
+```{r analyze sourcetracker ASV sources}
+library(tidyverse)
+library(data.table)
+library(forcats)
+library(qiime2R)
+library(vroom)
+library(future.apply)
+
+#Get list of tables
+feature_tables <- list.files(path = "data/processed/emp_data/st_out_decontam_w_feature_assignements/",pattern = "feature_table.txt",full.names = TRUE)
+
+#Import taxonomy
+taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>% select(otu = "Feature.ID",taxonomy = Taxon)
+
+#Set up for parallel processing of the files
+plan(multiprocess)
+
+#Loop over files in parallel, importing, tydying, and merging
+otu_source_table <- future_lapply(feature_tables, 
+    function(file) fread(file, sep = "\t", nThread = 7) %>% 
+      melt(id = "V1",value.name = "prop") %>%
+      filter(prop > 0) %>%
+      select(otu = "variable", source = "V1", prop) %>%
+      mutate(prop_comp = prop/sum(prop), sample = basename(file))
+    ) %>% 
+  bind_rows()
+
+#Make a simplified version of the feature assignment table
+simplified_source_table <- otu_source_table %>% 
+  group_by(source,otu) %>% 
+  summarise(prop = mean(prop_comp)) %>%
+  group_by(source) %>%
+  mutate(inds_of_this_source = n())
+
+
+#Make a "wide" version of the feature assignment table
+wide_simplified_source_table <- simplified_source_table %>%
+  select (-inds_of_this_source) %>%
+  spread("source","prop",fill = 0)
+
+
+entropy <- wide_simplified_source_table %>%
+  column_to_rownames("otu") %>%
+  as.matrix() %>%
+  vegan::diversity() %>%
+  data.frame(otu = wide_simplified_source_table$otu, entropy = .) %>%
+  left_join(taxonomy)
+
+wide_with_entropy <- wide_simplified_source_table %>% left_join(entropy) %>% select(otu, taxonomy, entropy, everything())
+
+write_delim(wide_with_entropy, "data/processed/emp_data/sourcetracker_feature_source.tsv", delim = "\t")
+
+#Plot the number of features predicted to come from each source
+simplified_source_table %>% 
+  ggplot(aes(x= reorder(source,inds_of_this_source))) + 
+    geom_bar() + 
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+    labs(x = "Source environment", title = "Number of features expected to come from each source") +
+    ggsave("c:/Users/eande/Desktop/asvs_per_source_sourcetracker.png",type = "cairo")
+
+
+simplified_source_table %>% left_join(entropy) %>% select(otu, taxonomy, entropy, everything()) %>% write_delim("data/processed/emp_data/sourcetracker_feature_source_long.tsv")
+
+```
+
+### Standard sourcetracker
+
+```{bash sourcetracker standard/fast}
+date
+start=`date +%s`
+
+source ~/miniconda2/bin/activate st2
+
+cd /mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/
+
+rm -rf st_out_decontam/
+
+#Without feature assignments
+sourcetracker2 gibbs \
+  --jobs 5 \
+  -i greater_than_1000_grouped_table_for_st.tsv \
+  -m grouped_emp_and_tapwater_comparison_map.tsv \
+  --alpha1 0.01 \
+  --alpha2 1 \
+  --source_category_column empo_3 \
+  --output_dir st_out_decontam/ \
+  --sink_rarefaction_depth 1000 \
+  --source_rarefaction_depth 4000
+  
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+Look at SourceTracker mixing proportions
+
+```{r look at source mixing proportions}
+library(forcats)
+library(tidyverse)
+
+metadata <- read_tsv("data/sample-metadata.tsv") %>% 
+  rename(sink = "#SampleID") 
+
+mixing_proportions <- read_delim("D:/Google Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/st_out_decontam/mixing_proportions.txt", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  gather("source","prop",-`#SampleID`) %>%
+  dplyr::rename(sink = "#SampleID") %>% 
+  left_join(metadata)
+
+
+colors <- c("#ffffff", "#ff0000", "#f27304", "#f27304", "#ff0000", "#ff0000", "#fcc688", "#52ff3c", "#500261", "#80c99b", "#045b04", "#80c99b", "#ff0000", "#a36f23", "#765f3d", "#6b440b", "#ffff00", "#ababab", "#5e5e5e", "#7cecf4", "turquoise4", "#0000ff","#000098")
+
+simp_mix <- mixing_proportions %>%
+  group_by(source) %>%
+  summarise(prop = sum(prop)) %>%
+  bind_cols(color = colors) %>%
+  #filter(source != "Unknown") %>%
+  mutate(prop = prop / sum(prop)) %>%
+  #filter(!str_detect(source,"Animal"), source != "sebum", source != "Unknown", source != "dust", source != "Sterile water blank") %>% 
+  arrange(prop)
+
+
+simp_mix %>% ggplot(aes(x = "a", y = prop,fill = factor(source,levels = simp_mix$source))) + 
+  geom_bar(stat = "identity", position = "stack") + 
+  scale_fill_manual(values = simp_mix$color) +
+  theme_bw() +
+  labs(title = "SourceTracker mixing proportions from EMP data",
+       subtitle = "For decontaminated concrete",
+       x = NULL,
+       y = "Mixing proportion",
+       fill = "Source (decreasing)"
+       ) + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/EMP_sourcetracker.png", type = "cairo")
+
+
+plotly::ggplotly(
+  mixing_proportions %>% filter(str_detect(sink,"[UM]")) %>% 
+  ggplot(aes(reorder(source,prop),prop,label = sink)) + 
+  geom_boxplot() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  theme(plot.margin=unit(c(1,1,1.5,1.2),"cm")) +
+  labs(x = NULL) +
+  coord_flip()
+)
+
+
+mean_source_order <- mixing_proportions %>% group_by(source) %>% 
+  summarise(mean = mean(prop)) %>% 
+  arrange(desc(mean))
+
+mixing_proportions %>% 
+  filter(Type == "Concrete") %>% 
+  ggplot(aes(Months,prop)) +
+  geom_smooth() + 
+  theme_bw() +
+  facet_wrap(factor(source,levels = mean_source_order$source) ~ .,ncol = 6) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Figures/emp_sourcetracking_over_time.png",type = "cairo", width = 10, height = 10)
+
+
+pre_mean_source_order <- mixing_proportions %>%
+  filter(Type != "Concrete") %>% 
+  group_by(source) %>% 
+  summarise(mean = mean(prop)) %>% 
+  arrange(desc(mean))
+
+mixing_proportions %>% filter(Type != "Concrete") %>% 
+  ggplot(aes(Type, prop, color = Type)) +
+  geom_boxplot() +
+  facet_wrap(factor(source,levels = pre_mean_source_order$source) ~ .,ncol = 6) +
+  theme_bw() +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Figures/precursor_emp_sources.png",type = "cairo", width = 10, height = )
+
+
+```
+
+Make CCA incorporating SourceTracker mixing proportions
+
+```{r constrained ordination incorp. sourcetracking results}
+
+otu_table <- read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom_table.qza", tmp = tempdir()) %>% .$data
+
+conc_table <- otu_table(otu_table,taxa_are_rows = TRUE)
+
+metadata <- import_qiime_sample_data("data/sample-metadata.tsv")
+
+mixing_proportions <- read_delim("data/processed/emp_data/st_out_decontam/mixing_proportions.txt", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  dplyr::rename(X.SampleID = "#SampleID")
+
+metadata <- as(import_qiime_sample_data("data/sample-metadata.tsv"),"data.frame") %>%
+  select(X.SampleID, Months, Mitigation_status, temp_avg, percent_contam_reads, Rhodoluna_num, percent_reads_in_neg_controls) %>%
+  left_join(mixing_proportions) %>%
+  mutate(rownames = X.SampleID) %>% 
+  column_to_rownames("rownames") %>%
+  sample_data()
+
+metadata_df <- as(metadata, "data.frame")
+
+taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)  %>% separate(., taxonomy, c("Kingdom","Phylum","Class","Order", "Family", "Genus","Species"), sep= ";", remove=TRUE) %>% select(-confidence, OTUID = `#OTU ID`) %>% filter(OTUID %in% rownames(otu_table)) %>% column_to_rownames("OTUID") %>% as.matrix()
+
+taxa_tab <- tax_table(taxonomy)
+
+concrete_phylo <- merge_phyloseq(conc_table,taxa_tab,metadata) %>% subset_samples(Unknown != "NA")
+
+
+#ord <- ordinate(concrete_phylo,method = "CCA", formula = ~ Months + temp_avg + Rhodoluna_num + percent_reads_in_neg_controls + Animal.surface + Sterile.water.blank + Surface..saline. + Tapwater)
+
+
+
+ord <- ordinate(concrete_phylo,method = "CCA", formula = ~ Months + temp_avg + Aerosol..non.saline. + Animal.corpus + Animal.distal.gut + Animal.proximal.gut + Animal.secretion + Animal.surface + FieldBlank + Hypersaline..saline. + Plant.corpus + Plant.rhizosphere + Plant.surface + Sediment..non.saline. + Sediment..saline. + Soil..non.saline. + Sterile.water.blank + Surface..non.saline. + Surface..saline. + Tapwater + Tapwater_inlet + Water..non.saline. + Water..saline. + Unknown)
+
+ps_scores <- vegan::scores(ord)
+sites <- data.frame(ps_scores$sites)
+sites$X.SampleID <- rownames(sites)
+sites <- sites %>%
+  left_join(as(sample_data(concrete_phylo),"data.frame"))
+
+species <- data.frame(ps_scores$species)
+species$otu_id <- rownames(species)
+species <- species %>%
+  left_join(as.data.frame(taxonomy) %>% rownames_to_column("otu_id"))
+
+
+evals_prop <- 100 * ord$CCA$eig[1:2] / sum(ord$CA$eig)
+
+
+
+cap_plot <- plot_ordination(
+  physeq = concrete_phylo, 
+  ordination = ord, 
+    color = "Months", 
+    axes = c(1,2)
+) + 
+    aes(shape = Mitigation_status) + 
+    geom_point(aes(colour = Months,label=X.SampleID), alpha = 0.4, size = 4) + 
+    geom_point(colour = "grey90", size = 1.5) + 
+    scale_color_viridis_c()
+
+
+# Now add the environmental variables as arrows
+arrowmat <- vegan::scores(ord, display = "bp")
+
+# Add labels, make a data.frame
+arrowdf <- data.frame(labels = rownames(arrowmat), arrowmat)
+
+# Define the arrow aesthetic mapping
+arrow_map <- aes(xend = CCA1, 
+    yend = CCA2, 
+    x = 0, 
+    y = 0, 
+    shape = NULL, 
+    color = NULL, 
+    label = labels)
+
+label_map <- aes(x = 1.3 * CCA1, 
+    y = 1.3 * CCA2, 
+    shape = NULL, 
+    color = NULL, 
+    label = labels)
+
+arrowhead = arrow(length = unit(0.02, "npc"))
+
+# Make a new graphic
+plt <- cap_plot + 
+  geom_segment(
+    mapping = arrow_map, 
+    size = .5, 
+    data = arrowdf, 
+    color = "gray", 
+    arrow = arrowhead
+  ) + 
+  geom_text(
+    mapping = label_map, 
+    size = 4,  
+    data = arrowdf, 
+    show.legend = FALSE
+  ) + 
+  geom_point(data = species, aes(CCA1, CCA2, label = paste0(otu_id,"__",Genus)), size = 0.2, alpha = 0.2, color = "black",inherit.aes = F) +
+  theme_bw()
+
+plotly::ggplotly(plt)
+```
+
+```{r}
+library(forcats)
+library(tidyverse)
+
+metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% dplyr::dplyr::rename(sample = "#SampleID")
+
+mixing_proportions <- read_delim("data/processed/emp_data/st_out_decontam/mixing_proportions.txt", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  gather("source","prop",-`#SampleID`) %>%
+  dplyr::dplyr::rename(sample = "#SampleID") %>% left_join(metadata)
+
+sebum <- mixing_proportions %>% filter(source == "sebum")
+
+mixing_proportions %>% filter(str_detect(sample, "[UM]")) %>% ggplot(aes(reorder(source,-prop),prop)) + 
+  geom_boxplot() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  theme(plot.margin=unit(c(1,1,1.5,1.2),"cm")) +
+  labs(x = NULL)
+
+
+mixing_proportions %>% filter(source == "breast milk") %>% ggplot(aes(Months, prop)) + geom_point() + geom_smooth()
+
+mixing_proportions %>% select(sample,source, prop, Months) %>% ggplot(aes(Months, prop, color = source)) + geom_point() + geom_smooth(method = "lm")
+
+mix_cors <- mixing_proportions %>% select(sample, source, prop, Months, percent_contam_reads, temp_avg) %>% spread("source","prop") %>% column_to_rownames("sample") %>% cor()
+
+
+```
+
+### Leave one out sourcetracker
+
+```{r metadata for leave-one-out sourcetracker analysis}
+library(tidyverse)
+
+grouped_meta <- read_delim("data/processed/emp_data/grouped_emp_and_tapwater_comparison_map.tsv", delim = "\t")
+
+loo_meta <- grouped_meta %>% mutate(Env = if_else(SourceSink == "sink", empo_3, Env)) %>% distinct() %>% mutate(SourceSink = "source")
+
+write_delim(loo_meta, "data/processed/emp_data/loo_grouped_emp_and_tapwater_comparison_map.tsv", delim = "\t" )
+```
+
+```{bash sourcetracker leave-one-out source analysis}
+start=`date +%s`
+
+source ~/miniconda2/bin/activate st2
+
+cd /mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/
+
+rm -rf st_loo_grouped_emp_tapwater_concrete/
+
+sourcetracker2 gibbs \
+  --jobs 5 \
+  --loo \
+  -i greater_than_1000_grouped_table_for_st.tsv \
+  -m loo_grouped_emp_and_tapwater_comparison_map.tsv \
+  --output_dir st_loo_grouped_emp_tapwater_concrete/ \
+  --sink_rarefaction_depth 1000 \
+  --source_rarefaction_depth 2700
+  
+  #--source_rarefaction_depth 12000
+  
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+```
+
+```{r heatmap of loo sourcetracker}
+library(pheatmap)
+
+loo <- read_delim("data/processed/emp_data/st_loo_grouped_emp_tapwater_concrete/mixing_proportions.txt", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  column_to_rownames("collapse_col")%>%
+  as.matrix()
+
+heatmap(loo)
+
+pheatmap(loo,scale = "none",filename = "c:/Users/eande/Desktop/st_loo_heatmap.pdf")
+
+
+```
+
+```{r}
+
+mix_wide <- mixing_proportions %>% spread("source","prop")
+
+met_and_mix <- met_samples %>% left_join(mix_wide %>% dplyr::rename(sample_id = "sink")) %>% 
+  select(sample_id,
+         temp_avg,
+         Type,
+         percent_contam_reads,
+         percent_reads_in_neg_controls,
+         one_of(colnames(mix_wide))) %>% filter(Type == "Concrete") %>% column_to_rownames("sample_id") %>% select(-Type) %>% filter(!is.na(Unknown)) %>% cor()
+
+
+met_and_mix %>% filter(Type == "Concrete") %>% ggplot(aes(-percent_contam_reads, `Surface (saline)`, color = temp_avg)) + geom_point() + geom_smooth(method = "lm")
+
+```
+
+## Indicator species analysis
+
+```{bash indicator species analysis pipeline}
+date
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/usr/local/bin/Rscript
+#SBATCH --job-name=inds_concrete
+#SBATCH --chdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=500G
+#SBATCH -c 2
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --exclude=biomix38
+#SBATCH --time=20-0
+
+#set biomix node because some (38) don't load R correctly (14, 11, and others work)
+
+system("hostname")
+
+########  R Code starts here #######
+
+library(tidyverse)
+library(qiime2R)
+library(readr)
+library(indicspecies)
+library(permute)
+library(phyloseq)
+library(vegan)
+
+phylo <- qiime2R::qza_to_phyloseq(features = "data/processed/emp_data/clust99_emp_tapwater_and_concrete_table.qza", 
+                                  taxonomy = "data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")
+
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
+
+taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>% 
+  select(otu = Feature.ID, -Confidence, Taxon) %>%
+  separate(., Taxon, c("Kingdom","Phylum","Class","Order", "Family", "Genus","Species"), sep= ";", remove=TRUE) %>% 
+  #select(-confidence, OTUID = `#OTU ID`) %>% 
+  #filter(OTUID %in% rownames(otu_table)) %>% 
+  column_to_rownames("otu") %>% 
+  as.matrix()
+
+phylo <- metadata %>% column_to_rownames("#SampleID") %>% sample_data() %>% merge_phyloseq(phylo)
+
+raw_series_phyloseq <- phylo %>% prune_samples(sample_names(.) !="021715U_6",.)
+
+#Agglomerate at taxonomic level
+#raw_series_phyloseq <- speedyseq::tax_glom(raw_series_phyloseq,"Genus")
+
+#Filter for taxa observed at least 10 times in 10 samples, and remove precursors
+ps <- raw_series_phyloseq %>% 
+  filter_taxa(function(x) sum(x > 10) > 10, TRUE) %>% 
+  subset_samples(!empo_3 %in% c("FlyAsh","Gravel","Powder","Sand", "Glass"))
+
+otu_table <- otu_table(ps) %>% as.data.frame() %>% as.matrix() %>% decostand("hell") %>% t()
+
+groupings <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$empo_3
+
+ind_val <- multipatt(otu_table,groupings, max.order = 3, control = how(nperm = 999))
+
+print("Indicator species analysis completed \tstarting confidence interval calculation.")
+
+ind_ci <- strassoc(otu_table, groupings, func = "IndVal.g", nboot.ci = 999)
+
+
+saveRDS(ind_val,"data/processed/emp_data/concrete_indicators.rds")
+saveRDS(ind_ci, "data/processed/emp_data/concrete_ind_ci.rds")
+
+ENDSSH
+```
+
+### Analyze indicator species results
+
+```{r analyze indicator species analysis , message=FALSE, warning=FALSE}
+library(tidyverse)
+library(qiime2R)
+library(data.table)
+library(metagMisc)
+library(vroom)
+
+#This was to try and get only concrete OTUs, but it also got precursor OTUs, switched to different method
+#otu_memb <- parse_uc("data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_decontam_concrete_otu_membership.tsv", map_only = T)
+
+#concrete_memb <- otu_memb %>% filter(nchar(Query) < 50) %>% rename(concrete_seq = "Query")
+
+#emp_concrete_otus <- concrete_memb %>% select(OTU) %>% distinct() %>% pull(OTU)
+#saveRDS(emp_concrete_otus,"data/processed/emp_data/emp_otus_in_concrete.rds")
+
+emp_concrete_otus <- read_rds("data/processed/emp_data/emp_otus_in_concrete.rds")
+
+concrete_inds <- readRDS("data/processed/emp_data/concrete_indicators.rds")
+
+taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>%
+  select(otu = "Feature.ID", -Confidence, taxonomy = "Taxon")
+
+inds <- concrete_inds$sign %>% 
+  rownames_to_column("otu") %>%
+  #cbind(concrete_inds$A) %>% 
+  filter(p.value < 0.05) %>% 
+  filter(otu %in% emp_concrete_otus) %>% 
+  left_join(taxonomy)
+```
+
+
+
+
+## Indicator **genera** analysis.
+
+```{bash ind. genera analysis}
+date
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/usr/local/bin/Rscript
+#SBATCH --job-name=g_inds_concrete
+#SBATCH --chdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=500G
+#SBATCH -c 2
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --exclude=biomix38
+#SBATCH --time=20-0
+
+#set biomix node because some (38) don't load R correctly (14, 11, and others work)
+
+system("hostname")
+
+########  R Code starts here #######
+
+library(tidyverse)
+library(qiime2R)
+library(readr)
+library(indicspecies)
+library(permute)
+library(phyloseq)
+library(vegan)
+
+phylo <- qiime2R::qza_to_phyloseq(features = "data/processed/emp_data/clust99_emp_tapwater_and_decontam_concrete_table.qza", 
+                                  taxonomy = "data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")
+
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
+
+taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>% 
+  select(otu = Feature.ID, -Confidence, Taxon) %>%
+  separate(., Taxon, c("Kingdom","Phylum","Class","Order", "Family", "Genus","Species"), sep= ";", remove=TRUE) %>% 
+  #select(-confidence, OTUID = `#OTU ID`) %>% 
+  #filter(OTUID %in% rownames(otu_table)) %>% 
+  column_to_rownames("otu") %>% 
+  as.matrix()
+
+phylo <- metadata %>% column_to_rownames("#SampleID") %>% sample_data() %>% merge_phyloseq(phylo)
+
+raw_series_phyloseq <- phylo %>% prune_samples(sample_names(.) !="021715U_6",.)
+
+#Agglomerate at taxonomic level
+raw_series_phyloseq <- speedyseq::tax_glom(raw_series_phyloseq,"Genus")
+
+#Filter for taxa observed at least 10 times in 10 samples, and remove precursors
+ps <- raw_series_phyloseq %>% 
+  filter_taxa(function(x) sum(x > 10) > 10, TRUE) %>% 
+  subset_samples(!empo_3 %in% c("FlyAsh","Gravel","Powder","Sand", "Glass"))
+
+otu_table <- otu_table(ps) %>% as.data.frame() %>% as.matrix() %>% decostand("hell") %>% t()
+
+groupings <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$empo_3
+
+ind_val <- multipatt(otu_table,groupings, max.order = 3, control = how(nperm = 999))
+
+print("Indicator species analysis completed \tstarting confidence interval calculation.")
+
+ind_ci <- strassoc(otu_table, groupings, func = "IndVal.g", nboot.ci = 999)
+
+
+saveRDS(ind_val,"data/processed/emp_data/g_concrete_indicators.rds")
+saveRDS(ind_ci, "data/processed/emp_data/g_concrete_ind_ci.rds")
+
+ENDSSH
+```
+
+```{r}
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  mutate(empo_3 = if_else(empo_3 == "Concrete" & str_detect(`#SampleID`, "U"), "ASR_pos", empo_3)) %>%
+  mutate(empo_3 = if_else(empo_3 == "Concrete" & str_detect(`#SampleID`, "M"), "ASR_neg", empo_3))
+```
+
+#### Indicator **genera** analysis, with ASR +/- concrete split
+
+```{bash ind. genera analysis}
+date
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/usr/local/bin/Rscript
+#SBATCH --job-name=g_inds_concrete_asr
+#SBATCH --chdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=500G
+#SBATCH -c 2
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --exclude=biomix38
+#SBATCH --time=20-0
+
+#set biomix node because some (38) don't load R correctly (14, 11, and others work)
+
+system("hostname")
+
+########  R Code starts here #######
+
+library(tidyverse)
+library(qiime2R)
+library(readr)
+library(indicspecies)
+library(permute)
+library(phyloseq)
+library(vegan)
+
+phylo <- qiime2R::qza_to_phyloseq(features = "data/processed/emp_data/clust99_emp_tapwater_and_decontam_concrete_table.qza", 
+                                  taxonomy = "data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")
+
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  mutate(empo_3 = if_else(empo_3 == "Concrete" & str_detect(`#SampleID`, "U"), "ASR_pos", empo_3)) %>%
+  mutate(empo_3 = if_else(empo_3 == "Concrete" & str_detect(`#SampleID`, "M"), "ASR_neg", empo_3))
+
+taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>% 
+  select(otu = Feature.ID, -Confidence, Taxon) %>%
+  separate(., Taxon, c("Kingdom","Phylum","Class","Order", "Family", "Genus","Species"), sep= ";", remove=TRUE) %>% 
+  #select(-confidence, OTUID = `#OTU ID`) %>% 
+  #filter(OTUID %in% rownames(otu_table)) %>% 
+  column_to_rownames("otu") %>% 
+  as.matrix()
+
+phylo <- metadata %>% column_to_rownames("#SampleID") %>% sample_data() %>% merge_phyloseq(phylo)
+
+raw_series_phyloseq <- phylo %>% prune_samples(sample_names(.) !="021715U_6",.)
+
+#Agglomerate at taxonomic level
+raw_series_phyloseq <- speedyseq::tax_glom(raw_series_phyloseq,"Genus")
+
+#Filter for taxa observed at least 10 times in 5 samples, and remove precursors
+ps <- raw_series_phyloseq %>% 
+  filter_taxa(function(x) sum(x > 10) > 5, TRUE) %>% 
+  subset_samples(!empo_3 %in% c("FlyAsh","Gravel","Powder","Sand", "Glass"))
+
+otu_table <- otu_table(ps) %>% as.data.frame() %>% as.matrix() %>% decostand("hell") %>% t()
+
+groupings <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$empo_3
+
+ind_val <- multipatt(otu_table,groupings, max.order = 2, control = how(nperm = 999))
+
+print("Indicator species analysis completed \tstarting confidence interval calculation.")
+
+ind_ci <- strassoc(otu_table, groupings, func = "IndVal.g", nboot.ci = 999)
+
+
+saveRDS(ind_val,"data/processed/emp_data/asr_g_concrete_indicators.rds")
+saveRDS(ind_ci, "data/processed/emp_data/asr_g_concrete_ind_ci.rds")
+
+ENDSSH
+```
+
+Get indicator genera results from biomix
+
+```{r analyze ind. genera results, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(qiime2R)
+library(data.table)
+
+#Get the results from biomix
+#system("wsl sftp akiledal@biomix.dbi.udel.edu:Concrete_analysis/data/processed/emp_data/g_concrete_indicators.rds '/mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/g_concrete_indicators.rds'")
+
+g_inds <- readRDS("data/processed/emp_data/g_concrete_indicators.rds")
+#g_inds <- readRDS("data/processed/emp_data/asr_g_concrete_indicators.rds") #with ASR split
+
+
+#system("wsl sftp akiledal@biomix.dbi.udel.edu:g_concrete_ind_ci.rds /mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/g_concrete_ind_ci.rds")
+g_ind_ci <- readRDS("data/processed/emp_data/g_concrete_ind_ci.rds")
+
+concrete_otus <- read_rds("data/processed/emp_data/emp_otus_in_concrete.rds")
+
+taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>%
+  select(otu = "Feature.ID", -Confidence, taxonomy = "Taxon")
+
+#concrete_results <- read_rds("data/processed/emp_data/")
+
+inds <- g_inds$sign %>% 
+  rownames_to_column("otu") %>%
+  #cbind(concrete_inds$A) %>% 
+  #filter(otu %in% concrete_otus) %>%
+  left_join(taxonomy)
+
+ind_ci <- data.frame(g_ind_ci$stat) %>% rownames_to_column("otu") %>% gather("source","stat", -otu) %>%
+  left_join(data.frame(g_ind_ci$lowerCI) %>% rownames_to_column("otu") %>% gather("source","lowerCI", -otu)) %>%
+  left_join(data.frame(g_ind_ci$upperCI) %>% rownames_to_column("otu") %>% gather("source","upperCI", -otu)) %>%
+  filter(stat > 0) %>%
+  left_join(taxonomy)
+
+
+concrete_genus_inds <- inds %>% 
+  filter(otu %in% concrete_otus) %>% 
+  #filter(s.Concrete == 1) %>% 
+  filter(p.value < 0.05)
+
+long_concrete_inds <- concrete_genus_inds %>% 
+  gather("env","ind", -c(otu,index,stat,p.value,taxonomy)) %>% 
+  filter(ind == 1)
+
+```
+
+
+
+
+# Compare contaminants to EMP groups
+
+```{bash export concrete contams only and trim to 90 bp}
+source ~/miniconda2/bin/activate qiime2-2019.10
+
+qiime tools export \
+  --input-path data/processed/biom_tables/contam_only/all_w_taxonomy_contam_table.biom_seqs.qza \
+  --output-path data/processed/biom_tables/contam_only/all_w_taxonomy_contam_table.biom_seqs
+
+python analysis/source_tracker/GetV4Region.py -i data/processed/biom_tables/contam_only/all_w_taxonomy_contam_table.biom_seqs/dna-sequences.fasta -l 90 -s > data/processed/biom_tables/contam_only/90bp_seqs.fasta
+```
+
+```{r filter concrete contaminant 90bp table}
+library(readr)
+library(tidyverse)
+library(qiime2R)
+x90bp <- read_delim("data/processed/biom_tables/contam_only/90bp_seqs.fasta", ">", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)
+x90bp <- data.frame(lapply(x90bp, na.omit)) %>% mutate('#OTU ID' = X1, q2_feature_id = X2) %>% select('#OTU ID',q2_feature_id)
+
+table <- read_qza("data/processed/biom_tables/contam_only/all_w_taxonomy_contam_table.biom_table.qza") %>% .$data %>% as.data.frame() %>% rownames_to_column("#OTU ID")
+
+filtered_table <- table %>% filter(`#OTU ID` %in% x90bp$q2_feature_id)
+
+write.table(filtered_table,file = "data/processed/biom_tables/contam_only/filtered_90bp_contam_table.tsv", quote=FALSE, sep='\t', row.names = FALSE)
+```
+
+## Run analysis on biomix
+
+```{bash EMP and concrete contaminant pipeline}
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/bin/bash
+#SBATCH --job-name=contams_emp
+#SBATCH --chdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=800G
+#SBATCH -c 48
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --time=20-0
+
+date
+hostname
+start=`date +%s`
+
+###Script starts here###
+
+source activate qiime2-2019.10
+
+qiime tools import \
+  --input-path data/processed/biom_tables/contam_only/90bp_seqs.fasta \
+  --output-path data/processed/biom_tables/contam_only/90bp_seqs.qza \
+  --type 'FeatureData[Sequence]'
+
+biom convert \
+  -i data/processed/biom_tables/contam_only/filtered_90bp_contam_table.tsv \
+  -o data/processed/biom_tables/contam_only/filtered_90bp_contam_table.biom \
+  --to-hdf5 \
+  --table-type="OTU table"
+
+qiime tools import \
+  --input-path data/processed/biom_tables/contam_only/filtered_90bp_contam_table.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path data/processed/biom_tables/contam_only/filtered_90bp_contam_table.qza
+
+qiime feature-table merge \
+  --i-tables data/processed/biom_tables/contam_only/filtered_90bp_contam_table.qza \
+  --i-tables data/processed/emp_data/tapwater_pruden/tapwater_table.qza \
+  --i-tables data/processed/emp_data/expanded_2ksubset_emp_deblur_90bp.release1_table.qza \
+  --o-merged-table data/processed/emp_data/emp_tapwater_and_contam_table.qza
+
+qiime feature-table filter-samples \
+  --i-table data/processed/emp_data/emp_tapwater_and_contam_table.qza \
+  --m-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv \
+  --o-filtered-table data/processed/emp_data/emp_tapwater_and_contam_table.qza
+  
+qiime fragment-insertion filter-features \
+  --i-table data/processed/emp_data//emp_tapwater_and_contam_table.qza \
+  --i-tree data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza \
+  --o-filtered-table data/processed/emp_data/sepp_filt_emp_tapwater_and_contam_table.qza \
+  --o-removed-table data/processed/emp_data/sepp_removed_table.qza
+
+qiime feature-table summarize \
+  --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_contam_table.qza \
+  --o-visualization data/processed/emp_data/sepp_filt_emp_tapwater_and_contam_table.qzv \
+  --m-sample-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv
+
+qiime feature-table merge-seqs \
+  --i-data data/processed/emp_data/tapwater_pruden/tapwater_seqs.qza \
+  --i-data data/processed/biom_tables/contam_only/90bp_seqs.qza \
+  --i-data data/processed/emp_data/emp_deblur_90bp.release1_seqs.qza \
+  --o-merged-data data/processed/emp_data/emp_tapwater_and_contam_seqs.qza
+
+qiime feature-table filter-seqs \
+  --i-data data/processed/emp_data/emp_tapwater_and_contam_seqs.qza \
+  --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_contam_table.qza \
+  --o-filtered-data data/processed/emp_data/emp_tapwater_and_contam_table_filt_seqs.qza
+
+#99% sequence identity
+qiime vsearch cluster-features-de-novo \
+  --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_contam_table.qza \
+  --i-sequences data/processed/emp_data/emp_tapwater_and_contam_table_filt_seqs.qza \
+  --p-threads 8 \
+  --p-perc-identity 0.99 \
+  --o-clustered-table data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_contam_table.qza \
+  --o-clustered-sequences data/processed/emp_data/clust99_emp_tapwater_and_contam_seqs.qza
+
+#Only works with modified v-search to export .uc file  
+mv /home/akiledal/vsearch.tsv data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_contam_otu_membership.tsv
+  
+qiime feature-table summarize \
+  --i-table data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_contam_table.qza \
+  --o-visualization data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_contam_table.qzv \
+  --m-sample-metadata-file data/processed/emp_data/emp_and_tapwater_comparison_map.tsv
+
+rm -rf data/processed/emp_data/core-metrics-results_emp_contam_tapwater
+
+mkdir -p /scratch/akiledal/%j
+
+cp data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza /scratch/akiledal/%j
+cp data/processed/emp_data/sepp_filt_clust99_emp_tapwater_and_contam_table.qza /scratch/akiledal/%j
+cp data/processed/emp_data/emp_and_tapwater_comparison_map.tsv /scratch/akiledal/%j
+
+
+start_q=`date +%s`
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/sepp_filt_clust99_emp_tapwater_and_contam_table.qza \
+  --p-sampling-depth 1000 \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --p-n-jobs 48 \
+  --output-dir data/processed/emp_data/core-metrics-results_emp_contam_tapwater
+
+echo ""Core metrics duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp -r data/processed/emp_data/core-metrics-results_emp_contam_tapwater /scratch/akiledal/%j/core-metrics-results_emp_contam_tapwater
+
+
+##Generalized (0.5) unifrac dist/pcoa/emperor
+start_q=`date +%s`
+qiime diversity beta-phylogenetic \
+  --i-phylogeny /scratch/akiledal/%j/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/core-metrics-results_emp_contam_tapwater/rarefied_table.qza \
+  --p-metric 'generalized_unifrac' \
+  --p-n-jobs 48 \
+  --p-alpha 0.5 \
+  --o-distance-matrix /scratch/akiledal/%j/contaminants_general_0_5_unifrac_distance_matrix.qza
+
+echo ""Generalized UniFrac duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp /scratch/akiledal/%j/general_0_5_unifrac_distance_matrix.qza data/processed/emp_data/core-metrics-results_emp_contam_tapwater/
+
+qiime diversity pcoa \
+  --i-distance-matrix data/processed/emp_data/core-metrics-results_emp_contam_tapwater/general_0_5_unifrac_distance_matrix.qza \
+  --o-pcoa data/processed/emp_data/core-metrics-results_emp_contam_tapwater/general_0_5_unifrac_pcoa.qza
+
+qiime emperor plot \
+  --i-pcoa data/processed/emp_data/core-metrics-results_emp_contam_tapwater/general_0_5_unifrac_pcoa.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_contam_tapwater/general_0_5_unifrac_emperor.qzv
+
+
+
+
+##Variance adjusted unifrac dist/pcoa/emperor
+start_q=`date +%s`
+qiime diversity beta-phylogenetic \
+  --i-phylogeny /scratch/akiledal/%j/emp_concrete_and_tapwater_sepp_tree.qza \
+  --i-table /scratch/akiledal/%j/core-metrics-results_emp_contam_tapwater/rarefied_table.qza \
+  --p-metric 'weighted_unifrac' \
+  --p-variance-adjusted \
+  --p-n-jobs 48 \
+  --o-distance-matrix /scratch/akiledal/%j/varadjust_unifrac_distance_matrix.qza
+
+echo ""Generalized UniFrac duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+cp /scratch/akiledal/%j/core-metrics-results_emp_contam_tapwater/varadjust_unifrac_distance_matrix.qza data/processed/emp_data/
+
+start_q=`date +%s`
+
+qiime diversity pcoa \
+  --i-distance-matrix data/processed/emp_data/core-metrics-results_emp_contam_tapwater/varadjust_unifrac_distance_matrix.qza \
+  --o-pcoa data/processed/emp_data/core-metrics-results_emp_contam_tapwater/varadjust_unifrac_pcoa.qza
+  
+echo ""Pcoa duration: $((($(date +%s)-$start_q)/60)) minutes""
+
+qiime emperor plot \
+  --i-pcoa data/processed/emp_data/core-metrics-results_emp_contam_tapwater/varadjust_unifrac_pcoa.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_contam_tapwater/varadjust_unifrac_emperor.qzv
+
+
+
+start_q=`date +%s`
+qiime diversity beta-group-significance \
+  --i-distance-matrix /scratch/akiledal/%j/core-metrics-results_emp_contam_tapwater/weighted_unifrac_distance_matrix.qza \
+  --m-metadata-file /scratch/akiledal/%j/emp_and_tapwater_comparison_map.tsv \
+  --m-metadata-column "empo_2" \
+  --o-visualization data/processed/emp_data/core-metrics-results_emp_contam_tapwater/weighted_unifrac_group_sig.qzv \
+  --p-pairwise
+
+echo "Beta significance duration: $((($(date +%s)-$start_q)/60)) minutes"
+
+rm -rf /scratch/akiledal/%j
+
+###Script ends here###
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+ENDSSH
+```
+
+# EMP similarity
+
+```{r fig.height=20, fig.width=20}
+library(qiime2R)
+library(tidyverse)
+library(patchwork)
+library(ggtext)
+
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  dplyr::select(sample = "#SampleID",Env,empo_2,empo_3, env_material,env_feature,env_biome,sample_scientific_name,host_common_name)
+
+series_samples <- c("Concrete", "FlyAsh", "Powder", "Sand", "Gravel")
+
+#Import decontaminated distances
+
+#dist_to_emp <- read_qza("data/processed/emp_data/decontam_general_0_5_unifrac_distance_matrix.qza")$data
+
+concrete_samples <- metadata %>% filter(empo_3 == "Concrete") %>% pull(sample)
+
+decontam_emp_dists <- read_qza("data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_distance_matrix.qza")$data %>% 
+  as.matrix() %>% as.data.frame() %>% 
+  rownames_to_column("s1") %>% 
+  gather("s2","dist",-s1) %>% 
+  filter(s1 != s2) %>% 
+  left_join(metadata %>% select(s1 = "sample", s1_empo3 = "empo_3")) %>%
+  left_join(metadata %>% select(s2 = "sample", s2_empo3 = "empo_3"))
+
+dists_w_meta <- decontam_emp_dists %>%
+  ungroup() %>% 
+  group_by(s1_empo3, s2_empo3) %>% 
+  summarise(mean_dist = mean(dist), mean_sim = 1- mean_dist)
+
+dists_w_meta %>% ggplot(aes(s1_empo3,s2_empo3, fill = mean_sim, label = round(mean_sim, 2))) +
+  geom_tile() +
+  geom_label() +
+  scale_fill_viridis_c() +
+  theme(axis.text.x = element_text(angle = 45))
+
+
+```
+
+## Decontamination and EMP distances: How much did decontamination affect concrete samples and their similarity to EMP groups?
+
+```{r EMP distance comparisons}
+library(qiime2R)
+library(tidyverse)
+library(patchwork)
+library(ggtext)
+
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
+  dplyr::select(sample = "#SampleID",Env,empo_2,empo_3, env_material,env_feature,env_biome,sample_scientific_name,host_common_name)
+
+series_samples <- c("Concrete", "FlyAsh", "Powder", "Sand", "Gravel")
+
+#Import decontaminated distances
+
+#dist_to_emp <- read_qza("data/processed/emp_data/decontam_general_0_5_unifrac_distance_matrix.qza")$data
+
+concrete_samples <- metadata %>% filter(empo_3 == "Concrete") %>% pull(sample)
+
+decontam_emp_dists <- read_qza("data/processed/emp_data/core-metrics-results_emp_decontam_concrete_tapwater/general_0_5_unifrac_distance_matrix.qza")$data %>% 
+  as.matrix() %>% as.data.frame() %>% 
+  rownames_to_column("s1") %>% 
+  gather("s2","decontam_dist",-s1) %>%
+  filter(s1 != s2, s1 %in% concrete_samples) %>%
+  left_join(metadata %>% dplyr::rename(s1 = "sample")) %>%
+  dplyr::rename(s1_env = "Env", 
+                s1_empo_2 = "empo_2", 
+                s1_empo_3 = "empo_3", 
+                s1_mat = "env_material", 
+                s1_feature = "env_feature", 
+                s1_biome = "env_biome", 
+                s1_sci_name = "sample_scientific_name", 
+                s1_host = "host_common_name") %>%
+  left_join(metadata %>% dplyr::rename(s2 = "sample")) %>% 
+  dplyr::rename(s2_env = "Env", 
+                s2_empo_2 = "empo_2", 
+                s2_empo_3 = "empo_3",
+                s2_mat = "env_material", 
+                s2_feature = "env_feature", 
+                s2_biome = "env_biome", 
+                s2_sci_name = "sample_scientific_name", 
+                s2_host = "host_common_name") %>%
+  filter(s1_empo_3 == "Concrete")
+
+#Import contaminated distances
+
+#dist_to_emp <- read_qza("data/processed/emp_data/general_0_5_unifrac_distance_matrix.qza") %>% .$data
+dist_to_emp <- read_qza("data/processed/emp_data/core-metrics-results_emp_concrete_tapwater/general_0_5_unifrac_distance_matrix.qza")$data
+
+raw_emp_dists <- dist_to_emp %>% as.matrix() %>% as.data.frame() %>% 
+  rownames_to_column("s1") %>% 
+  gather("s2","raw_dist",-s1) %>%
+  filter(s1 != s2)
+
+combined_dists <- decontam_emp_dists %>% left_join(raw_emp_dists) %>% mutate(decontam_minus_raw = decontam_dist - raw_dist) #%>% gather("dist_type","dist",dist,contam_dist)
+
+#Import distance from only concrete contaminants to EMP samples
+dist_to_emp <- read_qza("data/processed/emp_data/contaminants_general_0_5_unifrac_distance_matrix.qza") %>% .$data
+#dist_to_emp <- read_qza("data/processed/emp_data/core-metrics-results_emp_contam_tapwater/unweighted_unifrac_distance_matrix.qza")$data
+
+only_contam_emp_dists <- dist_to_emp %>% as.matrix() %>% as.data.frame() %>% 
+  rownames_to_column("s1") %>% 
+  gather("s2","only_contam_dist",-s1) %>%
+  filter(s1 != s2)
+
+
+dist_to_emp <- read_qza("data/processed/emp_data/core-metrics-results_animal_surface_removed/decontam_general_0_5_unifrac_distance_matrix.qza")$data
+
+no_animal_emp_dists <- dist_to_emp %>% as.matrix() %>% as.data.frame() %>% 
+  rownames_to_column("s1") %>% 
+  gather("s2","animal_surface_removed",-s1) %>%
+  filter(s1 != s2)
+
+
+combined_dists2 <- combined_dists %>% 
+  left_join(only_contam_emp_dists) %>% 
+  left_join(no_animal_emp_dists) %>%
+  mutate(decontam_minus_contam = decontam_dist - only_contam_dist, raw_minus_contam = raw_dist - only_contam_dist) %>% 
+  gather("dist_type","dist",c("raw_dist","decontam_dist","only_contam_dist","animal_surface_removed")) %>% 
+  gather("dist_change_type","dist_change",c("decontam_minus_raw", "decontam_minus_contam","raw_minus_contam"))
+
+
+combined_similarity <- combined_dists %>% 
+  mutate(decontam_sim = 1 - decontam_dist, 
+         raw_sim = 1-raw_dist,
+         decontam_change = decontam_sim - raw_sim) %>%
+  gather("sim_type","similarity", c(decontam_sim,raw_sim)) %>% 
+  mutate(precursor = if_else(s2_empo_3 %in% series_samples[-1], TRUE, FALSE),
+         s2_empo_3 = if_else(s2_empo_3 %in% series_samples, glue("**{s2_empo_3}**"), s2_empo_3))
+
+
+mean_emp_sim <- combined_dists2 %>%
+  group_by(dist_type,s2_empo_3) %>% 
+  filter(!is.na(dist), dist_type == "decontam_dist") %>%
+  select(dist,s2_empo_3,dist_type) %>% distinct() %>%
+  mutate(mean_dist = 1- mean(dist), mean_sd = sd(dist), sem = sd(dist)/sqrt(length(dist))) %>%
+  select(s2_empo_3,mean_dist,dist_type,sem,mean_sd, dist) %>% 
+  mutate(precursor = if_else(s2_empo_3 %in% series_samples[-1], TRUE, FALSE),
+         s2_empo_3 = if_else(s2_empo_3 %in% series_samples, glue("**{s2_empo_3}**"), s2_empo_3)) #%>% distinct()
+
+
+#Plot mean distance between decontaminated concrete samples and empo3 groups + precursor materials
+(emp_sim <- mean_emp_sim %>%
+  ggplot(aes(reorder(s2_empo_3,mean_dist),1- dist)) + 
+    geom_violin() +
+    geom_point(aes(x = s2_empo_3, y = mean_dist), data = . %>% select(s2_empo_3,mean_dist) %>% distinct(), inherit.aes = FALSE) + 
+    #geom_point() + 
+    #geom_errorbar(aes(ymin = mean_dist - 2*sem, ymax = mean_dist + 2*sem)) + 
+    #geom_errorbar(aes(ymin = mean_dist - mean_sd, ymax = mean_dist + mean_sd)) +
+    theme_minimal() +
+    theme(axis.text.y = element_markdown(size = 7),
+          axis.title.x = element_text(size = 8)) +
+    coord_flip() + 
+    #scale_y_reverse() +
+    labs(x = NULL, y = "Mean similarity (1- gUniFrac distance)") +
+    ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/emp_similarity_with_precursors.png", type = "cairo"))
+
+
+(emp_sim_horiz <- mean_emp_sim %>%
+  ggplot(aes(reorder(s2_empo_3,-mean_dist),1- dist)) + 
+    geom_violin() +
+    geom_point(aes(x = s2_empo_3, y = mean_dist), data = . %>% select(s2_empo_3,mean_dist) %>% distinct(), inherit.aes = FALSE) + 
+    #geom_point() + 
+    #geom_errorbar(aes(ymin = mean_dist - 2*sem, ymax = mean_dist + 2*sem)) + 
+    #geom_errorbar(aes(ymin = mean_dist - mean_sd, ymax = mean_dist + mean_sd)) +
+    theme_minimal() +
+    theme(axis.text.x = element_markdown(size = 7,angle = 45,valign = 1,halign = 1,vjust = 1,hjust = 1),
+          axis.title.y = element_text(size = 8)) +
+    #scale_y_reverse() +
+    labs(x = NULL, y = "Mean similarity (1- gUniFrac distance)"))
+
+
+#Plot mean distance between decontaminated concrete samples and empo3 groups (no precursors)
+(emp_sim_no_pre <- mean_emp_sim %>% 
+  filter(precursor != TRUE) %>% 
+    #filter(!s2_empo_3 %in% c("Concrete","FlyAsh","Powder","Sand","Gravel")) %>%
+  ggplot(aes(reorder(s2_empo_3,mean_dist),1- dist)) + 
+    geom_violin() +
+    geom_point(aes(x = s2_empo_3, y = mean_dist), data = . %>% select(s2_empo_3,mean_dist) %>% distinct(), inherit.aes = FALSE) + 
+    #geom_point() + 
+    #geom_errorbar(aes(ymin = mean_dist - 2*sem, ymax = mean_dist + 2*sem)) + 
+    #geom_errorbar(aes(ymin = mean_dist - mean_sd, ymax = mean_dist + mean_sd)) +
+    theme_minimal() +
+    theme(axis.text.y = element_markdown(size = 7),
+          axis.title.x = element_text(size = 8)) +
+    coord_flip() + 
+    #scale_y_reverse() +
+    labs(x = NULL, y = "Mean similarity (1- gUniFrac distance)") +
+    ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/emp_similarity_without_precursors.png", type = "cairo"))
+
+
+#Plot similarity change due to decontamination between concrete samples and empo_3 groups
+(decontam_change <- combined_similarity %>%
+  select(s2_empo_3,s1,s2,decontam_change,precursor) %>%
+  distinct() %>%
+  group_by(s2_empo_3) %>% 
+  filter(!is.na(decontam_change)) %>%
+  mutate(mean_change = mean(decontam_change), mean_sd = sd(decontam_change), sem = sd(decontam_change)/sqrt(length(decontam_change))) %>%
+  #filter(!s2_empo_3 %in% c("Concrete","FlyAsh","Powder","Sand","Gravel")) %>%
+  select(decontam_change, mean_change, s2_empo_3, sem, mean_sd) %>% 
+  #distinct() %>% 
+  ggplot(aes(reorder(s2_empo_3,mean_change),decontam_change)) + 
+  geom_violin() +
+  geom_point(aes(x = s2_empo_3, y = mean_change), data = . %>% select(s2_empo_3,mean_change) %>% distinct(), inherit.aes = FALSE) + 
+  #geom_errorbar(aes(x = s2_empo_3, ymin = mean_change - 2*sem, ymax = mean_change + 2*sem), 
+  #              data = . %>% select(s2_empo_3,mean_change,sem) %>% distinct(), inherit.aes = FALSE) + 
+  geom_hline(yintercept = 0)+
+  theme_minimal() +
+  theme(axis.text.y = element_markdown(size = 7),
+        axis.title.x = element_text(size = 8)) +
+  coord_flip() + 
+  #scale_y_reverse() +
+  labs(x = NULL, y = "Similarity change from decontamination") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF4_emp_decontam_similarity_change.png", type = "cairo"))
+
+
+
+#Plot a more detailed look at how decontamination affects similarity of concrete samples and empo_3 samples
+##point and error bar
+combined_dists2 %>%
+  group_by(dist_type,s2_empo_3) %>% 
+  filter(!is.na(dist)) %>%
+  mutate(mean_dist = mean(dist), mean_sd = sd(dist), sem = sd(dist)/sqrt(length(dist))) %>%
+  select(s2_empo_3,mean_dist,dist_type,sem) %>% distinct() %>%
+  filter(!s2_empo_3 %in% c("Concrete","FlyAsh","Powder","Sand","Gravel")) %>%
+  ggplot(aes(reorder(s2_empo_3,-mean_dist),1- mean_dist, color = dist_type)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = 1- mean_dist - 2*sem, ymax = 1- mean_dist + 2*sem)) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle =45, hjust = 1, vjust = 1)) +
+  coord_flip() + 
+  #scale_y_reverse() +
+  labs(x = NULL, y = "Mean distance (with SEM)", color = "Distance type") +
+  ggsave("c:/Users/eande/Desktop/decontam_effects_emp.png", type = "cairo")
+
+##box plot
+combined_dists2 %>% 
+  filter(!s2_empo_3 %in% c("Concrete","FlyAsh","Powder","Sand","Gravel")) %>%
+  ggplot(aes(reorder(s2_empo_3,dist),dist_change, fill = dist_change_type)) + 
+    geom_boxplot(outlier.alpha = 0.1) + 
+    theme_bw() +
+    theme(axis.text.x = element_text(angle =45, hjust = 1, vjust = 1)) +
+    coord_flip() +
+    labs(x = NULL, y = "Mean distance (with SEM)", color = "Change type") +
+    ggsave("c:/Users/eande/Desktop/decontam_change_emp.png", type = "cairo")
+
+
+
+#Combine plots for the paper
+
+##Load the PCoA plot, easier to do from the image to keep proportions accurate and not make the scales go wonky
+emp_pcoa_image <- magick::image_read("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/EMP_PCoA_generalised_0.5_UniFrac_no_title.png") %>% grid::rasterGrob()
+
+##Define the plot layout
+layout <- "
+AAAAA
+AAAAA
+AAAAA
+BBBBB
+"
+
+##Make plot with precursors included in mean dists
+wrap_plots(emp_pcoa_image, emp_sim_horiz) + 
+  plot_layout(design = layout) + 
+  plot_annotation(tag_levels = "a") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/emp_pcoa_and_bar.png", type = "cairo", width = 6.8, height = 6.8)
+
+##Make plot without precursors included in the mean dists
+wrap_plots(emp_pcoa_image, emp_sim_no_pre) + 
+  plot_layout(design = layout) + 
+  plot_annotation(tag_levels = "a") +
+   ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/emp_pcoa_and_bar_no_pre.png", type = "cairo", width = 6, height = 6)
+
+
+##Make a plot including changes due to decontamination as well
+##Define the layout
+
+layout <- "
+AA
+BC
+"
+
+
+wrap_plots(emp_pcoa_image, emp_sim, decontam_change) + 
+  plot_layout(design = layout) + 
+  plot_layout(nrow = 2) +
+  plot_annotation(tag_levels = "a") +
+   ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/other_inPrep_or_reference/emp_pcoa_and_bar_no_pre_w_decontam_change.png", type = "cairo", width = 6.87, height = 6.87, scale = 1.2)
+
+
+
+```
+
+
+## ASV relative observation frequency in EMP groups
+
+Run the main computationally heavy bits on biomix
+```{bash}
+date
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/usr/local/bin/Rscript
+#SBATCH --job-name=emp_prev
+#SBATCH --chdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=500G
+#SBATCH -c 2
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --exclude=biomix38
+#SBATCH --time=20-0
+
+#set biomix node because some (38) don't load R correctly (14, 11, and others work)
+
+system("hostname")
+
+########  R Code starts here #######
+library(qiime2R)
+library(tidyverse)
+
+#Load data
+metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", delim = "\t") #%>% mutate(grouping_column = if_else(`SourceSink` == "sink", Env, grouping_column))
+taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>% select(otu = "Feature.ID", taxonomy = "Taxon")
+
+otus <- read_qza("data/processed/emp_data/clust99_emp_tapwater_and_concrete_table.qza")$data %>% 
+  as.data.frame() %>% 
+  rownames_to_column("otu") %>% 
+  select(one_of(metadata$`#SampleID`),otu) %>%  
+  gather("sample","count", -otu)
+
+
+#contingency
+contingency <- otus %>% 
+  left_join(metadata %>% select(sample = "#SampleID",empo_2, empo_3)) %>% 
+  group_by(otu,empo_3) %>% 
+  mutate(group_size = n(),
+         times_present = sum(count > 0),
+         times_not_present = sum(count == 0),
+         prevalence = sum(count > 0)/n()) %>% 
+  filter(count > 0) %>% 
+  ungroup() %>% group_by(sample) %>% 
+  mutate(rel_abund = count/sum(count))
+
+saveRDS(contingency,"data/processed/emp_data/emp_contingency.rds")
+
+#Calculate prevalence per sample grouping
+prevalence <- otus %>% 
+  left_join(metadata %>% select(sample = "#SampleID",empo_2, empo_3)) %>% 
+  group_by(otu,empo_3) %>% 
+  mutate(group_size = n(), prevalence = sum(count > 0)/n()) %>% 
+  filter(count > 0) %>% 
+  ungroup() %>% group_by(sample) %>% 
+  mutate(rel_abund = count/sum(count))
+
+
+saveRDS(prevalence,"data/processed/emp_data/emp_prevalence.rds")
+prevalence <- read_rds("data/processed/emp_data/emp_prevalence.rds")
+
+concrete_otus <- prevalence %>% ungroup() %>% filter(empo_3 =="Concrete") %>% select(otu) %>% distinct() %>% pull(otu)
+
+rel_freq <- prevalence %>% 
+  ungroup() %>% group_by(otu) %>%
+  select(otu,empo_3,prevalence) %>% 
+  filter(!empo_3 %in% c("FlyAsh", "Sand","Gravel","Powder")) %>%
+  distinct() %>%
+  mutate(rel_freq = prevalence/sum(prevalence))
+
+saveRDS(rel_freq,"data/processed/emp_data/emp_rel_freq.rds")
+rel_freq <- read_rds("data/processed/emp_data/emp_rel_freq.rds")
+
+ENDSSH
+```

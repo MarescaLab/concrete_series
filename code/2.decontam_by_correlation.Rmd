@@ -1,0 +1,1244 @@
+---
+title: "avg_correlation_contaminants"
+author: "Anders Kiledal"
+date: "7/28/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = here::here())
+source("code/make_taxa_time_plots.R")
+```
+
+# Decontamination by correlation
+
+## Diagram of approach
+```{r fig.height=5, fig.width=8}
+library(DiagrammeR)
+
+grViz("digraph {
+  
+  graph []  
+  node[shape = rectangle, style = filled, fillcolor= Orange, fontsize = 20]
+  
+  
+  #define the nodes
+    glass_contams [label = 'Find highly correlated\n negative control ASVs']
+    glass_cor [label = 'Find ASVs highly\n correlated with these']
+    reagent_contams [label = 'Reagent associated\n contaminants', fillcolor = Lightblue]
+    double_check [label = 'Check for contaminants highly\n correlated with these']
+    contams [label = 'Contaminant sequences', fillcolor = Lightblue]
+    lab_align [label = 'Contaminants by alignment\n to lab organisms', fillcolor = Lightblue]
+    lab_cor [label = 'Find ASVs highly correlated\n with lab organisms']
+    lab_contams [label = 'Lab associated contaminants', fillcolor = Lightblue]
+    
+    
+  #define relationships
+  
+  glass_contams -> glass_cor -> reagent_contams -> double_check -> contams
+  lab_align -> lab_cor -> lab_contams -> double_check
+      
+}")
+
+```
+
+## Calculate the correlation metrics
+
+### SPARCC
+
+Export table in required format
+```{r}
+library(tidyverse)
+
+table <- qiime2R::read_qza("data/qiime2/all_table.qza")$data %>% as.data.frame() %>% 
+  rownames_to_column("#OTU ID") %>% 
+  write_tsv("data/processed/pairwise_otu_tests/sparcc_files/table.tsv")
+```
+
+Run on biomix
+```{}
+date
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/bin/bash
+#SBATCH --job-name=sparcc
+#SBATCH --workdir=/home/akiledal/Concrete_analysis/data/processed/pairwise_otu_tests/sparcc_files
+#SBATCH --mem=500G
+#SBATCH -c 20
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+
+date
+hostname
+start=`date +%s`
+
+./fastspar --otu_table table.tsv --correlation correlation_table.tsv --covariance covariance_table.tsv --threads 20
+
+mkdir /work/akiledal/fastspar_data
+
+mkdir /work/akiledal/fastspar_data/bootstrap_counts
+
+./fastspar_bootstrap  --otu_table table.tsv --number 1000 --prefix /work/akiledal/fastspar_data/bootstrap_counts/table
+
+mkdir /work/akiledal/fastspar_data/bootstrap_correlation
+
+parallel --jobs 20 ./fastspar --otu_table {} --correlation /work/akiledal/fastspar_data/bootstrap_correlation/cor_{/} --covariance /work/akiledal/fastspar_data/bootstrap_correlation/cov_{/} -i 5  --yes ::: /work/akiledal/fastspar_data/bootstrap_counts/*
+
+./fastspar_pvalues --otu_table table.tsv --correlation correlation_table.tsv --prefix /work/akiledal/fastspar_data/bootstrap_correlation/cor_table_ --permutations 1000 --outfile pvalues.tsv
+
+rm -r /work/akiledal/fastspar_data/bootstrap_counts
+
+###Script ends here###
+echo "Duration: $((($(date +%s)-$start)/60)) minutes"
+ENDSSH
+```
+
+
+### Spiec-easi
+
+Run Spiec-Easi on biomix
+```{}
+date
+ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
+#!/usr/local/bin/Rscript
+#SBATCH --job-name=25_spiec_easi
+#SBATCH --workdir=/home/akiledal/Concrete_analysis
+#SBATCH --mem=600G
+#SBATCH -c 25
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=akiledal@udel.edu
+#SBATCH --exclude=biomix38
+#SBATCH --time=20-0
+
+#set biomix nodes to exclude since some don't load R correctly
+
+system("hostname")
+
+library(SpiecEasi)
+library(phyloseq)
+library(tidyverse)
+library(qiime2R)
+library(igraph)
+library(Matrix)
+
+raw_otus <- read_qza("data/qiime2/all_table.qza")$data %>% otu_table(taxa_are_rows = TRUE)
+
+#Filter out taxa observed fewer than 2 times in at least 3 samples
+filt_otus <- raw_otus %>% filter_taxa(function(x) sum(x >= 2) >= 3, TRUE)
+
+pargs1 <- list(rep.num=50, ncores = 25, seed=1101)
+se.results <- spiec.easi(filt_otus, method='glasso', lambda.min.ratio=1e-3, nlambda=30,
+              sel.criterion='bstars', pulsar.select=TRUE, pulsar.params = pargs1)
+              
+saveRDS(se.results,"data/processed/pairwise_otu_tests/spiec_easi_results.rds")
+
+sebeta <- cov2cor(getOptCov(spiec_easi_biomix)) %>% as.matrix()
+
+saveRDS(sebeta,"data/processed/pairwise_otu_tests/spiec_easi_results_sebeta.rds")
+
+
+#Export in tsv file
+otus <- otu_table(filt_otus) %>% as.data.frame() %>% rownames()
+
+dimnames(sebeta) <- list(otus,otus)
+
+long_se <- sebeta %>% as.data.frame() %>% rownames_to_column("otu_1") %>%
+  gather(key = "otu_2",value = "cor",-otu_1) %>% filter(otu_1 != otu_2)
+
+write_delim(long_se,"data/processed/pairwise_otu_tests/spiec_easi_50_glasso_long.tsv",delim = "\t")
+
+
+#Get edge stability (fraction of subsamples that contained the edge)
+edge_stab <- getOptMerge(se.results) %>% as.matrix() 
+
+dimnames(edge_stab) <- list(otus,otus)
+
+edge_stability_long <- edge_stab %>% as.data.frame() %>% rownames_to_column("otu_1") %>%
+  gather(key = "otu_2",value = "stab",-otu_1) %>% filter(otu_1 != otu_2) %>% mutate(pseudo_p = 1-stab)
+
+write_delim(edge_stability_long,"data/processed/pairwise_otu_tests/spiec_easi_edge_stability.tsv",delim = "\t")
+
+ENDSSH
+```
+
+
+### Propr
+
+Propr is much faster to compute than SPARCC or Spiec-easi, so it just runs in the code below.
+
+
+## Determine contmainants with each correlation metric
+
+Set file paths, import data
+```{r}
+library(qiime2R)
+
+metadata_file = "data/sample-metadata.tsv"
+raw_table <- "data/qiime2/all_table.qza"
+
+taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  dplyr::rename(otu = "#OTU ID") %>% 
+  select(-confidence)
+
+#Import metadata
+metadata <- read_delim(metadata_file, "\t", escape_double = FALSE, trim_ws = TRUE)
+  
+#Import the raw ASV observation table
+raw_table <- read_qza(raw_table) %>% .$data %>% as.data.frame()
+```
+
+Find otus only found in the glass samples
+```{r}
+#contaminants only found in glass samples
+s_metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
+
+otu_tab <- read_qza("data/qiime2/all_table.qza") %>% .$data %>% as.data.frame() %>%  rownames_to_column("otu") 
+
+taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% select(otu = `#OTU ID`, taxonomy)
+
+glass <- otu_tab %>% as.data.frame() %>% select(one_of(s_metadata %>% filter(Type == "Glass") %>% .$`#SampleID`)) %>% transmute(glass = rowSums(.))
+fly_ash <- otu_tab %>% as.data.frame() %>% select(one_of(s_metadata %>% filter(Type == "FlyAsh") %>% .$`#SampleID`)) %>% transmute(fly_ash = rowSums(.))
+gravel <- otu_tab %>% as.data.frame() %>% select(one_of(s_metadata %>% filter(Type == "Gravel") %>% .$`#SampleID`)) %>% transmute(gravel = rowSums(.))
+powder <- otu_tab %>% as.data.frame() %>% select(one_of(s_metadata %>% filter(Type == "Powder") %>% .$`#SampleID`)) %>% transmute(powder = rowSums(.))
+sand <- otu_tab %>% as.data.frame() %>% select(one_of(s_metadata %>% filter(Type == "Sand") %>% .$`#SampleID`)) %>% transmute(sand = rowSums(.))
+concrete <- otu_tab %>% as.data.frame() %>% select(one_of(s_metadata %>% filter(Type == "Concrete") %>% .$`#SampleID`)) %>% transmute(concrete = rowSums(.))
+
+all_combined <- bind_cols(glass,gravel,sand,concrete,powder, fly_ash)
+
+all_combined$otu <- otu_tab$otu
+
+glass_only <- all_combined %>% 
+  filter(glass > 0 & gravel <= 1 & fly_ash <= 1 & powder <= 1 & sand <= 1& concrete <= 1) %>%
+  pull("otu")
+
+#Start master table of contaminants
+contam_ident <- data.frame(otu = rownames(raw_table)) %>% 
+                  left_join(taxonomy) %>% 
+                  mutate(only_in_glass = if_else(otu %in% glass_only, TRUE, FALSE))
+```
+
+
+### SPARCC
+```{r load files sparcc}
+library(qiime2R)
+library(tidyverse)
+library(readr)
+library(data.table)
+
+#p.vals <- fread(file = "data/processed/pairwise_otu_tests/sparcc_files/pvalues.tsv", sep = "\t",nThread = 5) %>% 
+p.vals <- fread(file = "d:/Google Drive/Documents/UDel/Research/Concrete_analysis/data/processed/pairwise_otu_tests/sparcc_files/pvalues.tsv", sep = "\t",nThread = 5) %>% 
+  select(otu_1 = `#OTU ID`,everything()) %>% 
+  gather(key = "otu_2",value = "p.value",-otu_1) 
+
+#correlation_table <- fread(file = "data/processed/pairwise_otu_tests/sparcc_files/correlation_table.tsv", sep = "\t",nThread = 5) %>% 
+correlation_table <- fread(file = "d:/Google Drive/Documents/UDel/Research/Concrete_analysis/data/processed/pairwise_otu_tests/sparcc_files/correlation_table.tsv", sep = "\t",nThread = 5) %>% 
+  select(otu_1 = `#OTU ID`,everything()) %>% 
+  gather(key = "otu_2",value = "cor",-otu_1) %>%
+  bind_cols(p.vals %>% select(p.value)) %>%
+  filter(p.value < 0.05, otu_1 != otu_2, cor > 0.35 | cor < -0.35)
+
+#Get the negative control samples
+negative_control_samples <- metadata %>% filter(neg_control == TRUE) %>% .$`#SampleID`
+
+#Get a list of otus found in glass bead negative control samples
+neg_control_otus <- raw_table %>% select(negative_control_samples) %>% rownames_to_column("otu") %>% gather("sample","abund", -otu) %>% filter(abund > 0) %>% select(otu) %>% distinct() %>% .$otu
+
+#Determine ASVs in glass samples that are highly correlated
+correlations_within_glass <- correlation_table %>%
+  filter(otu_1 %in% neg_control_otus & otu_2 %in% neg_control_otus & otu_1 != otu_2) %>% #only look at correlations between otus in glass and remove self-correlations
+  filter(abs(cor) > 0.35) %>% group_by(otu_1) %>% #only look at stronger correlations (.3 is very common for SPARCC, almost guaranteed that p.value is < 0.05)
+  summarise(mean_cor_w_other_glass = mean(cor), number_pos_cors = sum(cor >= 0.3), number_neg_cors = sum(cor <= -0.3), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+#Plot metrics about the correlations
+correlations_within_glass %>% ggplot(aes(mean_cor_w_other_glass)) + geom_histogram()
+correlations_within_glass %>% ggplot(aes(number_pos_cors)) + geom_density()
+correlations_within_glass %>% ggplot(aes(number_neg_cors)) + geom_density()
+correlations_within_glass %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_other_glass, color = mean_cor_w_other_glass)) + geom_point()
+
+#Save contaminants
+main_glass_contams <- correlations_within_glass %>% 
+  filter(num_pos_minus_neg > 0, mean_cor_w_other_glass > 0.3) %>% 
+  pull("otu")
+
+#Add to master contaminant table
+contam_ident <- contam_ident %>% 
+                  mutate(sparcc_main_glass_contam = if_else(otu %in% main_glass_contams, TRUE, FALSE))
+```
+
+
+Find other otus that seem to be highly correlated with main glass contams identified
+```{r}
+otus_correlated_w_main_glass_contams <- correlation_table %>%
+  filter(!otu_1 %in% main_glass_contams & otu_2 %in% main_glass_contams & otu_1 != otu_2) %>% 
+  filter(abs(cor) > 0.35) %>%
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_glass = mean(cor), number_pos_cors = sum(cor >= 0.3), number_neg_cors = sum(cor <= -0.3), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+#Plot correlations metrics
+otus_correlated_w_main_glass_contams %>% ggplot(aes(mean_cor_w_glass)) + geom_histogram()
+otus_correlated_w_main_glass_contams %>% ggplot(aes(number_pos_cors)) + geom_density()
+otus_correlated_w_main_glass_contams %>% ggplot(aes(number_neg_cors)) + geom_density()
+otus_correlated_w_main_glass_contams %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_glass, color = mean_cor_w_glass)) + geom_point()
+
+#Save contams
+non_glass_contams <- otus_correlated_w_main_glass_contams %>% 
+  filter(mean_cor_w_glass > 0.25, number_pos_cors > 10) %>% 
+  pull("otu")
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(sparcc_cor_W_main_glass = if_else(otu %in% non_glass_contams, TRUE, FALSE))
+```
+
+
+Final list of SPARCC reagent-associated contaminants
+```{r}
+reagent_associated_contams <- c(main_glass_contams,non_glass_contams, glass_only)
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(sparcc_reagent_contams = if_else(otu %in% reagent_associated_contams, TRUE, FALSE))
+```
+
+
+ASVs associated with known lab contams
+```{r}
+lab_contaminant_seqs_in_concrete <- read.table("data/processed/lab_contaminant_seqs_in_concrete.txt", quote="\"", comment.char="") %>% select(otu = V1)
+lab_contam_otus <- lab_contaminant_seqs_in_concrete %>% .$otu %>% as.character()
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(lab_contams_blast = if_else(otu %in% lab_contam_otus, TRUE, FALSE))
+
+lab_contams_w_taxonomy <- left_join(lab_contaminant_seqs_in_concrete,taxonomy)
+
+
+#determine the intercorrelation of the lab contams
+lab_contam_intercorrelation <- correlation_table %>%
+  filter(!otu_1 %in% lab_contam_otus & otu_2 %in% lab_contam_otus & otu_1 != otu_2) %>% 
+  filter(abs(cor) > 0.35) %>%
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_lab = mean(cor), number_pos_cors = sum(cor >= 0.3), number_neg_cors = sum(cor <= -0.3), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+#Find contaminants correlated with lab contaminants
+otus_correlated_w_lab_contams <- correlation_table %>%
+  filter(!otu_1 %in% lab_contam_otus & otu_2 %in% lab_contam_otus & otu_1 != otu_2) %>% 
+  filter(cor >= 0.3 | cor <= -0.3) %>%
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_lab = mean(cor), number_pos_cors = sum(cor >= 0.3), number_neg_cors = sum(cor <= -0.3), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+#Plot correlation metrics
+otus_correlated_w_lab_contams %>% ggplot(aes(mean_cor_w_lab)) + geom_histogram()
+otus_correlated_w_lab_contams %>% ggplot(aes(number_pos_cors)) + geom_density()
+otus_correlated_w_lab_contams %>% ggplot(aes(number_neg_cors)) + geom_density()
+otus_correlated_w_lab_contams %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_lab, color = mean_cor_w_lab)) + geom_point()
+
+#Save contaminants
+lab_correlated_contams <- otus_correlated_w_lab_contams %>% filter(mean_cor_w_lab >= 0.3, number_pos_cors > 1) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(sparcc_lab_correlated = if_else(otu %in% lab_correlated_contams, TRUE, FALSE))
+```
+
+
+All SPARCC contaminants so far
+```{r}
+all_contaminant_otus <- c(reagent_associated_contams,lab_correlated_contams,lab_contam_otus)
+```
+
+
+Re-check for any otus associated with combined contams
+```{r}
+otus_correlated_w_all_contams <- correlation_table %>%
+  filter(!otu_1 %in% all_contaminant_otus & otu_2 %in% all_contaminant_otus & otu_1 != otu_2) %>% 
+  filter(abs(cor) > 0.35) %>%
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_all = mean(cor), number_pos_cors = sum(cor >= 0.3), number_neg_cors = sum(cor <= -0.3), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+otus_correlated_w_all_contams %>% ggplot(aes(mean_cor_w_all)) + geom_histogram()
+otus_correlated_w_all_contams %>% ggplot(aes(number_pos_cors)) + geom_density()
+otus_correlated_w_all_contams %>% ggplot(aes(number_neg_cors)) + geom_density()
+otus_correlated_w_all_contams %>% filter(mean_cor_w_all > 0.3) %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_all, color = mean_cor_w_all)) + geom_point()
+
+#Save additional/secondary contaminants
+additional_contams <- otus_correlated_w_all_contams %>% filter(mean_cor_w_all > 0.3, number_pos_cors > 5) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(sparcc_secondary_contams = if_else(otu %in% additional_contams, TRUE, FALSE))
+```
+
+Export contaminant list
+```{r}
+contaminant_otus_for_export <- c(all_contaminant_otus,additional_contams) %>% unique()
+
+contam_ident <- contam_ident %>% mutate(sparcc_all = if_else(otu %in% contaminant_otus_for_export, TRUE, FALSE))
+
+write.table(contaminant_otus_for_export,file = "data/processed/sparcc_contaminants.txt",sep = "\n",quote = FALSE,row.names = FALSE,col.names = FALSE)
+
+```
+
+
+### SPIEC-EASI
+
+```{r}
+library(qiime2R)
+library(tidyverse)
+library(readr)
+library(data.table)
+library(SpiecEasi)
+library(phyloseq)
+
+rm(correlation_table); gc()
+
+#correlation_table <- fread("data/processed/pairwise_otu_tests/spiec_easi_50_glasso_long.tsv", nThread = 5) %>% filter(otu_1 != otu_2, cor != 0)
+correlation_table <- fread("d:/Google Drive/Documents/UDel/Research/Concrete_analysis/data/processed/pairwise_otu_tests/spiec_easi_50_glasso_long.tsv", nThread = 5) %>% filter(otu_1 != otu_2, cor != 0)
+
+#se_edge_stability <- fread("data/processed/pairwise_otu_tests/spiec_easi_edge_stability.tsv") %>% select(-stab) %>% left_join(correlation_table) %>% filter(pseudo_p <= 0.5)
+se_edge_stability <- fread("d:/Google Drive/Documents/UDel/Research/Concrete_analysis/data/processed/pairwise_otu_tests/spiec_easi_edge_stability.tsv") %>% select(-stab) %>% left_join(correlation_table) %>% filter(pseudo_p <= 0.5)
+
+correlation_table <- se_edge_stability %>% select(-pseudo_p)
+
+#Get the negative control samples
+negative_control_samples <- metadata %>% filter(neg_control == TRUE) %>% .$`#SampleID`
+
+#Get a list of otus found in glass bead negative control samples
+neg_control_otus <- raw_table %>% select(negative_control_samples) %>% rownames_to_column("otu") %>% gather("sample","abund", -otu) %>% filter(abund > 0) %>% select(otu) %>% distinct() %>% .$otu
+
+#Make table of OTU relative abundance in glass samples
+rel_abund_in_glass <- raw_table %>% select(contains("glass")) %>% rowSums() %>% as.data.frame() %>% mutate(rel_abund = ./sum(.), otu = rownames(raw_table)) %>% filter(rel_abund > 0) %>% select(otu, rel_abund)
+
+write_delim(rel_abund_in_glass,"data/processed/otu_rel_abund_in_glass_samples.tsv", delim = "\t")
+
+correlations_within_glass <- correlation_table %>%
+  filter(otu_1 %in% neg_control_otus & otu_2 %in% neg_control_otus & otu_1 != otu_2 & abs(cor) > 0.1) %>% #only look at correlations between otus in glass and remove self-correlations
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_other_glass = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+correlations_within_glass %>% ggplot(aes(mean_cor_w_other_glass)) + geom_histogram()
+correlations_within_glass %>% ggplot(aes(number_pos_cors)) + geom_density()
+correlations_within_glass %>% ggplot(aes(number_neg_cors)) + geom_density()
+correlations_within_glass %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_other_glass, color = mean_cor_w_other_glass)) + geom_point()
+
+main_glass_contams <- correlations_within_glass %>% filter(num_pos_minus_neg > 5) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(se_main_glass_contam = if_else(otu %in% main_glass_contams, TRUE, FALSE))
+
+```
+
+
+Find other otus that seem to be highly correlated with main glass contams identified
+```{r}
+otus_correlated_w_main_glass_contams <- correlation_table %>%
+  filter(!otu_1 %in% main_glass_contams & otu_2 %in% main_glass_contams & otu_1 != otu_2 & abs(cor) > 0.1) %>% 
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_glass = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+
+
+otus_correlated_w_main_glass_contams %>% ggplot(aes(mean_cor_w_glass)) + geom_histogram() + scale_x_log10()
+
+otus_correlated_w_main_glass_contams %>% ggplot(aes(number_pos_cors)) + geom_density() + scale_x_log10()
+
+otus_correlated_w_main_glass_contams %>% ggplot(aes(num_pos_minus_neg)) + geom_density() + scale_x_log10()
+
+otus_correlated_w_main_glass_contams %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_glass, color = mean_cor_w_glass)) + geom_point()
+
+
+non_glass_contams <- otus_correlated_w_main_glass_contams %>% filter(num_pos_minus_neg > 5) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(se_cor_W_main_glass = if_else(otu %in% non_glass_contams, TRUE, FALSE))
+```
+
+Final list of reagent-associated contaminants
+```{r}
+reagent_associated_contams <- c(main_glass_contams,non_glass_contams, glass_only)
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(se_reagent_contams = if_else(otu %in% reagent_associated_contams, TRUE, FALSE))
+```
+ 
+ASVs associated with known lab contams
+```{r}
+lab_contaminant_seqs_in_concrete <- read.table("data/processed/lab_contaminant_seqs_in_concrete.txt", quote="\"", comment.char="") %>% select(otu = V1)
+lab_contam_otus <- lab_contaminant_seqs_in_concrete %>% .$otu %>% as.character()
+lab_contams_w_taxonomy <- left_join(lab_contaminant_seqs_in_concrete,taxonomy)
+
+#determine the intercorrelation of the lab contams
+lab_contam_intercorrelation <- correlation_table %>%
+  filter(otu_1 %in% lab_contam_otus & otu_2 %in% lab_contam_otus & otu_1 != otu_2 & abs(cor) > 0.1) %>% 
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_lab = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+
+otus_correlated_w_lab_contams <- correlation_table %>%
+  filter(!otu_1 %in% lab_contam_otus & otu_2 %in% lab_contam_otus & otu_1 != otu_2 & abs(cor) > 0.1) %>% 
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_lab = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+otus_correlated_w_lab_contams %>% ggplot(aes(mean_cor_w_lab)) + geom_histogram()
+otus_correlated_w_lab_contams %>% ggplot(aes(number_pos_cors)) + geom_density()
+otus_correlated_w_lab_contams %>% ggplot(aes(number_neg_cors)) + geom_density()
+otus_correlated_w_lab_contams %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_lab, color = mean_cor_w_lab)) + geom_point()
+
+lab_correlated_contams <- otus_correlated_w_lab_contams %>% filter(num_pos_minus_neg > 5) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(se_lab_correlated = if_else(otu %in% lab_correlated_contams, TRUE, FALSE))
+```
+
+
+All contaminants identified so far
+```{r}
+all_contaminant_otus <- c(reagent_associated_contams,lab_correlated_contams,lab_contam_otus)
+```
+
+
+Re-check for any otus associated with combined contams
+```{r}
+otus_correlated_w_all_contams <- correlation_table %>%
+  filter(!otu_1 %in% all_contaminant_otus & otu_2 %in% all_contaminant_otus & otu_1 != otu_2 & abs(cor) > 0.1) %>% 
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_all = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+
+otus_correlated_w_all_contams %>% ggplot(aes(mean_cor_w_all)) + geom_histogram()
+
+otus_correlated_w_all_contams %>% ggplot(aes(number_pos_cors)) + geom_density()
+
+otus_correlated_w_all_contams %>% ggplot(aes(number_neg_cors)) + geom_density()
+
+
+otus_correlated_w_all_contams %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_all, color = mean_cor_w_all)) + geom_point() + geom_hline(yintercept = 0.001)
+
+additional_contams <- otus_correlated_w_all_contams %>% filter(number_pos_cors > 5) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(se_secondary_contams = if_else(otu %in% additional_contams, TRUE, FALSE))
+```
+
+Export contaminant list
+```{r}
+
+contaminant_otus_for_export <- c(all_contaminant_otus,additional_contams) %>% unique()
+
+contam_ident <- contam_ident %>% mutate(se_all = if_else(otu %in% contaminant_otus_for_export, TRUE, FALSE))
+
+write.table(contaminant_otus_for_export,file = "data/processed/se_contaminants.txt",sep = "\n",quote = FALSE,row.names = FALSE,col.names = FALSE)
+
+```
+
+
+### PROPR
+
+Using the rho metric
+```{r}
+library(qiime2R)
+library(tidyverse)
+library(readr)
+library(data.table)
+library(propr)
+
+#Read in the table
+table <- read_qza("data/qiime2/all_table.qza") %>% .$data %>% t()
+
+#Filter very rare taxa (less than 10 counts in all concrete samples)
+keep <- apply(table, 2, function(x) sum(x >= 2) >= 3)
+
+#determine correlations with the rho metric in propr
+props <- propr(table, metric = "rho", p = 999, select = keep)
+
+prop_list_whole_tri <- props@matrix %>% as.data.frame() %>% rownames_to_column("otu_1") %>% 
+  gather(key = "otu_2",value = "prop",-otu_1) %>%
+  filter(!is.na(otu_1), !is.na(otu_2),!is.na(prop)) %>% 
+  filter(prop > 0.65 | prop < -0.5, otu_1 != otu_2)
+
+correlation_table <- prop_list_whole_tri %>%
+  dplyr::rename(cor = "prop")
+
+#Get the negative control samples
+negative_control_samples <- metadata %>% filter(neg_control == TRUE) %>% .$`#SampleID`
+
+#Get a list of otus found in glass bead negative control samples
+neg_control_otus <- raw_table %>% select(negative_control_samples) %>% rownames_to_column("otu") %>% gather("sample","abund", -otu) %>% filter(abund > 0) %>% select(otu) %>% distinct() %>% .$otu
+
+#Make table of OTU relative abundance in glass samples
+rel_abund_in_glass <- raw_table %>% select(contains("glass")) %>% rowSums() %>% as.data.frame() %>% mutate(rel_abund = ./sum(.), otu = rownames(raw_table)) %>% filter(rel_abund > 0) %>% select(otu, rel_abund)
+
+write_delim(rel_abund_in_glass,"data/processed/otu_rel_abund_in_glass_samples.tsv", delim = "\t")
+
+correlations_within_glass <- correlation_table %>%
+  filter(otu_1 %in% neg_control_otus & otu_2 %in% neg_control_otus & otu_1 != otu_2) %>% #only look at correlations between otus in glass and remove self-correlations
+  #filter(cor >= 0.3 | cor <= -0.3) %>% #only look at stronger correlations (.3 is very common for SPARCC, almost guaranteed that p.value is < 0.05)
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_other_glass = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+correlations_within_glass %>% ggplot(aes(mean_cor_w_other_glass)) + geom_histogram()
+correlations_within_glass %>% ggplot(aes(number_pos_cors)) + geom_histogram()
+correlations_within_glass %>% ggplot(aes(mean_cor_w_other_glass, num_pos_minus_neg)) + geom_point()
+
+main_glass_contams <- correlations_within_glass %>% filter(num_pos_minus_neg > 5) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(prop_main_glass_contam = if_else(otu %in% main_glass_contams, TRUE, FALSE))
+```
+
+Find other otus that seem to be highly correlated with main glass contams identified
+```{r}
+
+
+otus_correlated_w_main_glass_contams <- correlation_table %>%
+  filter(!otu_1 %in% main_glass_contams & otu_2 %in% main_glass_contams & otu_1 != otu_2) %>% 
+  #filter(cor >= 0.3 | cor <= -0.3) %>%
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_glass = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+
+otus_correlated_w_main_glass_contams %>% ggplot(aes(mean_cor_w_glass)) + geom_histogram()
+otus_correlated_w_main_glass_contams %>% ggplot(aes(number_pos_cors)) + geom_histogram()
+otus_correlated_w_main_glass_contams %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_glass, color = mean_cor_w_glass)) + geom_point()
+
+non_glass_contams <- otus_correlated_w_main_glass_contams %>% filter(num_pos_minus_neg >= 1) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(prop_cor_W_main_glass = if_else(otu %in% non_glass_contams, TRUE, FALSE))
+```
+
+
+Final list of reagent-associated contaminants
+```{r}
+reagent_associated_contams <- c(main_glass_contams,non_glass_contams, glass_only)
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(prop_reagent_contams = if_else(otu %in% reagent_associated_contams, TRUE, FALSE))
+
+```
+
+ASVs associated with known lab contams
+```{r}
+lab_contaminant_seqs_in_concrete <- read.table("data/processed/lab_contaminant_seqs_in_concrete.txt", quote="\"", comment.char="") %>% select(otu = V1)
+
+lab_contam_otus <- lab_contaminant_seqs_in_concrete %>% .$otu %>% as.character()
+
+lab_contams_w_taxonomy <- left_join(lab_contaminant_seqs_in_concrete,taxonomy)
+
+
+#determine the intercorrelation of the lab contams
+lab_contam_intercorrelation <- correlation_table %>%
+  filter(otu_1 %in% lab_contam_otus & otu_2 %in% lab_contam_otus & otu_1 != otu_2) %>% 
+  #filter(cor >= 0.3 | cor <= -0.3) %>%
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_lab = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+
+otus_correlated_w_lab_contams <- correlation_table %>%
+  filter(!otu_1 %in% lab_contam_otus & otu_2 %in% lab_contam_otus & otu_1 != otu_2) %>% 
+  #filter(cor >= 0.3 | cor <= -0.3) %>%
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_lab = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+ dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+
+otus_correlated_w_lab_contams %>% ggplot(aes(mean_cor_w_lab)) + geom_histogram()
+
+otus_correlated_w_lab_contams %>% ggplot(aes(number_pos_cors)) + geom_histogram()
+
+
+otus_correlated_w_lab_contams %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_lab, color = mean_cor_w_lab)) + geom_point()
+
+lab_correlated_contams <- otus_correlated_w_lab_contams %>% filter(number_pos_cors >= 1) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(prop_lab_correlated = if_else(otu %in% lab_correlated_contams, TRUE, FALSE))
+```
+
+
+All contaminants identified so far
+```{r}
+all_contaminant_otus <- c(reagent_associated_contams,lab_correlated_contams,lab_contam_otus)
+```
+
+
+Re-check for any otus associated with combined contams
+```{r}
+otus_correlated_w_all_contams <- correlation_table %>%
+  filter(!otu_1 %in% all_contaminant_otus & otu_2 %in% all_contaminant_otus & otu_1 != otu_2) %>% 
+  #filter(cor >= 0.3 | cor <= -0.3) %>%
+  group_by(otu_1) %>%
+  summarise(mean_cor_w_all = mean(cor), number_pos_cors = sum(cor > 0), number_neg_cors = sum(cor < 0), num_pos_minus_neg = number_pos_cors - number_neg_cors) %>%
+  dplyr::rename(otu = otu_1) %>% 
+  left_join(taxonomy)
+
+
+otus_correlated_w_all_contams %>% ggplot(aes(mean_cor_w_all)) + geom_histogram()
+otus_correlated_w_all_contams %>% ggplot(aes(number_pos_cors)) + geom_histogram()
+otus_correlated_w_all_contams %>% ggplot(aes(num_pos_minus_neg,mean_cor_w_all)) + geom_point()
+
+additional_contams <- otus_correlated_w_all_contams %>% filter(mean_cor_w_all > 0.3, number_pos_cors > 1) %>% .$otu
+
+#Add to master table
+contam_ident <- contam_ident %>% mutate(prop_secondary_contams = if_else(otu %in% additional_contams, TRUE, FALSE))
+
+```
+
+Export contaminant list
+```{r}
+contaminant_otus_for_export <- c(all_contaminant_otus,additional_contams) %>% unique()
+
+contam_ident <- contam_ident %>% mutate(prop_all = if_else(otu %in% contaminant_otus_for_export, TRUE, FALSE))
+
+export_contams_w_taxonomy <- taxonomy %>% filter(otu %in% contaminant_otus_for_export)
+
+write.table(contaminant_otus_for_export,file = "data/processed/prop_contaminants.txt",sep = "\n",quote = FALSE,row.names = FALSE,col.names = FALSE)
+
+```
+
+
+## Pick consensus contaminants
+
+### Nucleotide similarity of concrete ASVs
+
+For selecting ASVs highly similar to contaminants by nucleotide identity
+
+***Only re-calculate if needed
+```{}
+library(Biostrings)
+library(tidyverse)
+library(qiime2R)
+
+concrete_seqs <- read_qza("data/processed/biom_tables/raw/all_w_taxonomy_table.biom_seqs.qza")$data %>% 
+  as.data.frame() %>%
+  dplyr::rename(seq = "x") %>%
+  rownames_to_column("otu")
+
+dists <- stringdist::stringdistmatrix(concrete_seqs$seq, nthread = 5, method = "lv")
+
+dist_pairs <- dists %>% as.matrix() %>% as.data.frame() %>%  `rownames<-`(concrete_seqs$otu) %>% `colnames<-`(concrete_seqs$otu) %>% 
+  rownames_to_column("otu1") %>% 
+  gather("otu2", "dist", -otu1) %>% 
+  filter(otu1 != otu2)
+
+write_rds(dist_pairs, "data/processed/pairwise_otu_tests/levenshtein_dist.rds")
+
+
+```
+
+Load saved results
+```{r}
+#dist_pairs <- read_rds("data/processed/pairwise_otu_tests/levenshtein_dist.rds")
+dist_pairs <- read_rds("d:/Google Drive/Documents/UDel/Research/Concrete_analysis/data/processed/pairwise_otu_tests/levenshtein_dist.rds")
+```
+
+
+### Run decontam, and make long format of identified contaminants
+```{r}
+#Run decontam
+library(decontam)
+
+contaminated_table <- read_qza("data/qiime2/all_table.qza")$data %>% 
+  t()
+
+sample_metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  column_to_rownames("#SampleID")
+
+sample_metadata <- sample_metadata[rownames(contaminated_table),]
+
+concs <- as.numeric(paste0(sample_metadata$num_conc))
+negs <- as.logical(paste0(sample_metadata$neg_control))
+
+#Run decontam's isContaminant function, looking at both methods
+full_decontam_results <- isContaminant(contaminated_table,conc = concs,neg = negs,method = "either",threshold= c(1,1)) %>%
+  rownames_to_column("seqid") %>% 
+  filter(contaminant == TRUE) %>% 
+  filter(!duplicated("OTU ID")) %>%
+  left_join(read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+              select(seqid= "#OTU ID", taxonomy)) %>% #add taxonomy to contaminant table
+  write_delim("data/processed/decontam_results.tsv", delim = "\t")
+
+#Thresholds to use
+prev_thres = 0.33
+freq_thres = 0.05
+
+decontam_results <- full_decontam_results %>% 
+    select(otu = seqid, p.prev, p.freq)
+
+decontam_results %>% ggplot(aes(p.prev)) + geom_histogram()
+
+decontam_prev_contams <- decontam_results %>% filter(p.prev < prev_thres) %>% pull(otu)
+decontam_freq_contams <- decontam_results %>% filter(p.freq < freq_thres) %>% pull(otu)
+
+contam_ident_w_decontam <- contam_ident %>%
+  mutate(decontam_prev = if_else(otu %in% decontam_prev_contams, T, F), 
+         #decontam_freq = if_else(otu %in% decontam_freq_contams, T, F), 
+         subtract_neg = if_else(otu %in% neg_control_otus, T, F),
+         #decontam_non_contam = if_else(otu %in% decontam_non_contam_results, T, F)
+         )
+
+long_contam_ident <- contam_ident_w_decontam %>%
+  gather("method","contam",-otu,-taxonomy) %>% 
+  filter(contam == TRUE) %>% 
+  group_by(otu) %>% 
+  mutate(num_methods = n())
+
+contam_ident_cor <- contam_ident_w_decontam %>% column_to_rownames("otu") %>% select(-taxonomy) %>% cor()
+
+methods_to_use <- c("se_all", "sparcc_all", "prop_all","decontam_prev","decontam_freq","subtract_neg")
+
+long_contams_by_method <- long_contam_ident %>% 
+  filter(method %in% methods_to_use) %>% 
+  group_by(otu) %>% 
+  mutate(num_methods = n())
+
+all_contams_for_cyto <- long_contams_by_method %>% 
+  spread("method","contam") %>% 
+  write_delim("data/processed/correlation_contams_for_cyto.tsv",delim = "\t")
+
+```
+
+
+### Determine final contaminants and export
+```{r}
+library(qiime2R)
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggrepel)
+
+taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  dplyr::rename(otu = "#OTU ID") %>% select(-confidence)
+
+#Import metadata
+metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
+  
+#Import the raw ASV observation table
+raw_table <- read_qza("data/qiime2/all_table.qza") %>% .$data %>% as.data.frame() %>% rownames_to_column("otu")
+
+long_table <- raw_table %>% filter() %>% gather("sample","abund", -otu)
+
+sample_stats <- long_table %>% 
+  filter(abund > 0) %>% 
+  group_by(sample) %>% 
+  mutate(total_reads = sum(abund), otu_n = n()) %>% 
+  select(-abund, -otu) %>% distinct()
+
+
+otu_and_decontam <- long_table %>% 
+  left_join(long_contams_by_method) %>% 
+  filter(contam == TRUE, abund > 0, num_methods >= 1) %>% 
+  group_by(sample, method) %>% 
+  mutate(contam_reads = sum(abund), contam_n = n()) %>% 
+  left_join(sample_stats) %>% 
+  mutate(percent_contam_reads = contam_reads/total_reads, 
+         percent_contam_otus = contam_n/otu_n)
+
+
+#Pick what is determined to be a contaminant, and the number of methods needed to support
+contams_w_support_of_at_least_x_methods <- otu_and_decontam %>% 
+  ungroup() %>% 
+  filter(num_methods >= 1) #%>% 
+  #select(otu) %>% distinct()
+
+#Don't include only negative control subtraction
+neg_only <- contams_w_support_of_at_least_x_methods %>%
+  filter(method == "subtract_neg" & num_methods ==1) %>% 
+  select(otu,taxonomy) %>% distinct()
+
+contams_w_support_of_at_least_x_methods <- contams_w_support_of_at_least_x_methods %>%
+  filter(!otu %in% neg_only$otu)
+
+#Select otus that differ from selected contaminants by x nucleotide differences, as determined w/ levenshtein dist.
+similar_to_contams <- dist_pairs %>%
+  filter(otu1 %in% contams_w_support_of_at_least_x_methods$otu & dist <= 1) #%>% 
+  #select(otu2) %>% distinct() %>% pull(otu2)
+
+#Make list of contaminants for export and export them
+expanded_contams <- c(contams_w_support_of_at_least_x_methods$otu,similar_to_contams$otu2) %>% 
+  unique() %>% data.frame(otu = .) %>%
+  write_delim("data/processed/contaminants.txt",delim = "\t",col_names = FALSE)
+
+#Add to sample stats
+sample_stats <- long_table %>%
+  filter(abund > 0, !otu %in% expanded_contams$otu) %>%
+  group_by(sample) %>% 
+  mutate(post_decontam_reads = sum(abund), 
+         post_decontam_otu_n = n()) %>% 
+  select(-abund, -otu) %>% distinct() %>%
+  left_join(sample_stats) %>%
+  mutate(percent_read_loss = (total_reads - post_decontam_reads) / total_reads, 
+         percent_otu_loss = (otu_n - post_decontam_otu_n) / otu_n) %>%
+  select(sample, total_reads, post_decontam_reads, percent_read_loss, otu_n, post_decontam_otu_n, percent_otu_loss) %>%
+  write_delim("data/processed/decontamination_stat.tsv","\t")
+
+```
+
+
+## Make summary figures
+```{r}
+summary_by_sample <- otu_and_decontam %>% select(-otu, - abund, - taxonomy, -num_methods) %>% distinct()
+
+if (dir.exists("results/other/decontam") == FALSE) {dir.create("results/other/decontam",recursive = TRUE)} 
+
+summary_by_sample %>% ggplot(aes(contam_n, contam_reads, color = method)) + 
+  geom_point(alpha = 0.5) + 
+  #geom_smooth(method = "lm", se = F) +
+  geom_smooth(method = "loess", se = F) +
+  geom_label_repel(data = subset(summary_by_sample,contam_reads > 1e05 | contam_n > 150 | str_detect(sample,"Glass")), aes(label = sample), size = 2) + 
+  theme_bw() +
+  ggsave("results/other/decontam/contam_by_method_counts.png", type = "cairo")
+
+
+summary_by_sample %>% ggplot(aes(percent_contam_otus, percent_contam_reads, color = method)) + 
+  geom_point(alpha = 0.5) + 
+  #geom_smooth(method = "lm", se = F) + 
+  geom_smooth(method = "loess", se = F)+
+  geom_label_repel(data = subset(summary_by_sample,percent_contam_otus > .75 | str_detect(sample,"Glass")), aes(label = sample), size = 1.5) + lims(y = c(0,1.2)) + 
+  theme_bw() +
+  ggsave("results/other/decontam/contam_by_method_percent.png", type = "cairo")
+
+samples_w_fewer_than_50_percent_contam_reads <- summary_by_sample %>% group_by(sample) %>% mutate(max_percent_contam = max(percent_contam_reads)) %>% filter(max_percent_contam < .5) %>% ungroup() %>% select(sample) %>% distinct()
+
+consensus_contams_summary_by_sample <- long_table %>% mutate(contam = if_else(otu %in% contams_w_support_of_at_least_x_methods$otu, T, F)) %>% filter(contam == TRUE, abund > 0) %>% group_by(sample) %>% mutate(contam_reads = sum(abund), contam_n = n()) %>% left_join(sample_stats) %>% mutate(percent_contam_reads = contam_reads/total_reads, percent_contam_otus = contam_n/otu_n) %>% select(-otu, -abund) %>% distinct()
+
+consensus_contams_summary_by_sample %>% ggplot(aes(percent_contam_otus, percent_contam_reads)) + 
+  geom_point(alpha = 0.5) + 
+  #geom_smooth(method = "lm", se = F) + 
+  geom_smooth(method = "loess", se = F)+
+  geom_label_repel(data = subset(consensus_contams_summary_by_sample,percent_contam_otus > .55 | str_detect(sample,"Glass") | percent_contam_reads < 0.5), aes(label = sample), size = 1.5) + lims(y = c(0,1)) + 
+  theme_bw() +
+  ggsave("results/other/decontam/contam_by_consensus.png", type = "cairo", width = 6, height = 4, units = "in")
+
+```
+
+
+### Contams by method
+```{r}
+library(VennDiagram)
+library(limma)
+library(eulerr)
+library(tidyverse)
+library(UpSetR)
+#library(cairo)
+
+methods_vd <- c("se_all", "sparcc_all", "prop_all","decontam_prev","subtract_neg")
+
+contam_for_vd <- contam_ident_w_decontam %>% 
+  select(otu,one_of(methods_vd))
+
+
+#Add in nucleotide similarity
+similar_df <- contam_for_vd %>%
+  full_join(similar_to_contams, by = c("otu" = "otu1")) %>%
+  select(-otu,-dist) %>%
+  rename(otu = "otu2") %>%
+  distinct()
+
+contam_for_vd <- contam_for_vd %>%
+  bind_rows(similar_df) %>%
+  distinct() %>%
+  group_by(otu) %>%
+  summarise_at(vars(methods_vd), ~if_else(sum(.) > 0, TRUE, FALSE)) %>%
+  filter(!is.na(otu)) 
+
+contam_for_vd <- contam_for_vd %>%
+  bind_cols(rowsum = rowSums(contam_for_vd %>% select(-otu))) %>%
+  filter(rowsum > 0) %>% select(-rowsum) %>%
+  column_to_rownames("otu")
+
+contam_for_vd[contam_for_vd > 0] <- 1 
+
+euler_plot <- euler(contam_for_vd)
+
+cairo_pdf("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF1_contams_by_method.pdf", width = 6, height = 6)
+plot(euler_plot,quantities = TRUE)
+dev.off()
+
+plot(euler_plot,quantities = TRUE)
+
+upset(contam_for_vd)
+
+
+#Find contaminants only determined with particular methods, useful for checking results
+
+subset_contams <- contam_for_vd %>% 
+  rownames_to_column("otu") %>% 
+  bind_cols(row_sum = rowSums(contam_for_vd)) %>% 
+  filter(prop_all == 1 & row_sum == 1) %>% left_join(taxonomy)
+
+
+series.metacoder(otu_table = "data/qiime2/all_table.qza", otus_to_include  = subset_contams$otu)
+
+```
+
+
+### Contams by type
+```{r}
+library(patchwork)
+
+#Make long table of contaminant types
+contam_types <- contam_ident_w_decontam %>% 
+  gather("type","value",-otu,-taxonomy) %>%
+  filter(value == TRUE)
+
+#Add in contaminants by nucleotide similarity
+contams_w_method_and_dist <- similar_to_contams %>% 
+  rename(otu = "otu1", contam_by_dist = "otu2") %>% 
+  full_join(contam_types) %>%
+  select(otu, contam_by_dist, dist, taxonomy, type) %>%
+  distinct()
+
+contams_by_dist <- contams_w_method_and_dist %>%
+  select(contam_by_dist,type) %>%
+  filter(!is.na(contam_by_dist)) %>%
+  rename(otu = "contam_by_dist") %>%
+  left_join(taxonomy)
+
+contam_types <- contam_types %>% 
+  full_join(contams_by_dist) %>%
+  select(-value) %>%
+  distinct()
+
+full_contam_types_wide <- contam_types %>% 
+  mutate(contam = TRUE) %>% 
+  spread("type","contam",fill = FALSE) %>% 
+  select(otu,taxonomy,lab_contams_blast,only_in_glass,decontam_prev,starts_with("prop"), starts_with("se"), starts_with("sparcc"), everything(),-subtract_neg) %>% 
+  write_tsv("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/Supplements/ST_3_contams_by_method_detailed.tsv")
+
+#Make wide table for contaminant types for euler/upset plots
+contam_types_wide <- contam_types %>% 
+  mutate(type = if_else(str_detect(type,"lab"),"lab",type),
+         type = if_else(str_detect(type,"reagent"),"reagent",type),
+         type = if_else(str_detect(type,"secondary"),"secondary",type),
+         type = if_else(str_detect(type,"subtract_neg"),"neg_control",type),
+         type = if_else(str_detect(type,"decontam_prev"),"decontam_prev",type),
+         val = 1) %>% 
+  filter(type %in% c("reagent", "lab", "secondary", "neg_control","decontam_prev")) %>% 
+  distinct() %>% 
+  spread("type","val",fill = 0)
+
+#Make Euler plot of the contaminant types
+(euler2 <- contam_types_wide %>% 
+  column_to_rownames("otu") %>% 
+  select(-taxonomy) %>% 
+  euler() %>% 
+  plot(.,quantities = TRUE))
+
+cairo_pdf("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF2_contams_by_type_euler.pdf", width = 6, height = 6)
+plot(euler2,quantities = TRUE)
+dev.off()
+
+#Make Upset plot of the contaminant types
+contam_types_wide %>% 
+  column_to_rownames("otu") %>% 
+  select(-taxonomy) %>% 
+  upset()
+
+
+
+#Make metacoder plots for the different contaminant types
+
+#Filter all identified as reagent contaminants
+reagent_contaminants <- contam_types %>%
+  filter(str_detect(type,"reagent"))
+
+#Plot rel.abund of reagent contaminants
+(reagent_plot <- series.metacoder(otu_table = "data/qiime2/all_table.qza", 
+                 otus_to_include = reagent_contaminants$otu) + 
+  ggtitle("Reagent contaminants") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Figures/reagent_contaminants.png", type ="cairo"))
+
+
+#Filter all identified as lab contaminants
+lab_contaminants <- contam_types %>%
+  filter(str_detect(type,"lab")) %>%
+  filter(!otu %in% reagent_contaminants$otu)
+
+#Plot rel.abund of lab contams
+(lab_contam_plot <- series.metacoder(otu_table = "data/qiime2/all_table.qza", 
+                 otus_to_include = lab_contaminants$otu) + 
+  ggtitle("Lab contaminants") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Figures/lab_contaminants.png", type ="cairo"))
+
+
+#Filter all identified as secondary contaminants
+secondary_contaminants <- contam_types %>%
+  filter(str_detect(type,"secondary")) %>%
+  filter(!otu %in% reagent_contaminants$otu & !otu %in% lab_contaminants$otu)
+
+#Plot rel.abund of lab contams
+(secondary_plot <- series.metacoder(otu_table = "data/qiime2/all_table.qza", 
+                 otus_to_include = secondary_contaminants$otu) + 
+  ggtitle("Other contaminants") +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Figures/secondary_contaminants.png", type ="cairo"))
+
+#Unique contaminants identified by decontam 
+decontam_contaminants <- contam_types %>%
+  filter(str_detect(type,"decontam_prev"))%>%
+  filter(!otu %in% reagent_contaminants$otu & !otu %in% lab_contaminants$otu & !otu %in% secondary_contaminants$otu)
+
+
+reagent_plot + lab_contam_plot + secondary_plot + plot_annotation(tag_levels = 'a') +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Figures/contaminant_plots.pdf", device = cairo_pdf) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Figures/contaminant_plots.png", type = "cairo")
+```
+
+
+#### Heat tree matrix
+```{r}
+library(metacoder)
+
+taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t") %>% 
+  select(seq_id = "#OTU ID", taxonomy)
+
+met_samples <- read_delim("data/sample-metadata.tsv", "\t")
+
+concrete_samples <- met_samples %>%
+  filter(Type == "Concrete") %>%
+  pull("#SampleID")
+
+otus <- read_qza("data/qiime2/all_table.qza")$data
+
+concrete_table <- otus %>% as.data.frame() %>%
+  select(one_of(concrete_samples))
+
+otus <- otus %>%
+  as.data.frame() %>%
+  bind_cols(concrete = rowSums(concrete_table), seq_id = rownames(otus)) %>%
+  left_join(taxonomy) %>%
+  select(one_of(c("seq_id","concrete","taxonomy"))) %>%
+  mutate(concrete = concrete/sum(concrete)) %>%
+  mutate(reagent = if_else(seq_id %in% reagent_contaminants$otu, concrete, 0) ,
+         lab = if_else(seq_id %in% lab_contaminants$otu, concrete, 0), 
+         other = if_else(seq_id %in% secondary_contaminants$otu, concrete, 0),
+         decontam = if_else(seq_id %in% decontam_contaminants$otu, concrete, 0),
+         #dist = if_else(seq_id %in% dist_contaminants$otu, concrete, 0)
+         ) %>%
+  column_to_rownames("seq_id")
+  
+cols_of_interest <- otus %>%
+  select(-taxonomy,-concrete) %>%
+  rowSums() > 0
+
+contam_types <- c("reagent","lab","other","decontam")
+
+met_otus <- otus[cols_of_interest,] #%>%
+  #select(-concrete)
+
+obj <- parse_tax_data(met_otus, class_cols = "taxonomy", class_sep = ";",
+                      class_key = c(tax_rank = "info", tax_name = "taxon_name"),
+                      class_regex = "^(.+)__(.*)$")
+
+
+#summing per-taxon counts
+obj$data$tax_abund <- calc_taxon_abund(obj, "tax_data",
+                                       cols = c(contam_types,"concrete")) 
+
+thresh <- 0.001 #Rel.abund threshold to filter for plottting
+tab <- obj$data$tax_abund %>% select(-taxon_id) %>% rowSums() > thresh
+
+obj <- filter_obs(obj,"tax_abund",tab)
+
+
+keep <- obj$data$tax_data$taxon_id %in% obj$data$tax_abund$taxon_id
+obj <- filter_obs(obj,"tax_data", keep)
+
+obj <- taxa::filter_taxa(obj,unique(obj$data$tax_abund$taxon_id))
+
+
+#filter(reagent > thresh | lab > thresh | secondary > thresh | decontam > thresh | dist > thresh)
+
+#obj$data$tax_occ <- calc_n_samples(obj, "tax_abund", groups = c("reagent","lab","secondary","decontam","dist"))
+
+#adds comparison data about type to the data
+obj$data$diff_table <- compare_groups(obj, data = "tax_abund",
+                                      cols = contam_types,
+                                      groups = contam_types)
+
+
+obj$data$tax_data <- NULL #otherwise plot gets confused looking for concrete (rel.abund)
+
+(heat_tree <- obj %>%
+#taxa::filter_taxa(reagent > 0.001 | lab > 0.001 | secondary > 0.001 | decontam > 0.001 | dist > 0.001) %>%
+heat_tree_matrix(data = "diff_table",
+                 node_size = concrete,
+                 node_label = taxon_names,
+                 node_color = log2_median_ratio,
+                 node_color_range = diverging_palette(),
+                 node_color_trans = "linear",
+                 node_color_interval = c(-3, 3),
+                 edge_color_interval = c(-3, 3),
+                 node_size_axis_label = "Number of OTUs",
+                 node_color_axis_label = "Log2 ratio median proportions",
+                 node_size_range = c(0.0005,0.05),
+                 node_label_size_range = c(.015,.02),
+                 node_label_max = 100,
+                 initial_layout = "reingold-tilford", layout = "davidson-harel",
+                 overlap_avoidance = 1.2) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF3_contam_heat_tree_matrix.pdf", device = cairo_pdf))
+```
+
+
+
+## Export contaminant list for paper with taxonomy
+```{r}
+
+taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t") %>% 
+  select(seq_id = "#OTU ID", taxonomy)
+
+met_samples <- read_delim("data/sample-metadata.tsv", "\t")
+
+concrete_samples <- met_samples %>%
+  filter(Type == "Concrete") %>%
+  pull("#SampleID")
+
+otus <- read_qza("data/qiime2/all_table.qza")$data
+
+concrete_table <- otus %>% as.data.frame() %>%
+  select(one_of(concrete_samples))
+
+tax_ranks <- c("kingdom","phylum","class","order","family","genus","species")
+
+otus <- otus %>%
+  as.data.frame() %>%
+  bind_cols(concrete = rowSums(concrete_table), seq_id = rownames(otus)) %>%
+  left_join(taxonomy) %>%
+  select(one_of(c("seq_id","taxonomy"))) %>%
+  mutate(reagent = if_else(seq_id %in% reagent_contaminants$otu, 1, 0) ,
+         lab = if_else(seq_id %in% lab_contaminants$otu, 1, 0), 
+         putative = if_else(seq_id %in% secondary_contaminants$otu, 1, 0),
+         decontam = if_else(seq_id %in% decontam_contaminants$otu, 1, 0)) %>%
+  select(-seq_id) %>%
+  separate(taxonomy,tax_ranks,sep = "; ") %>% 
+  mutate_at(tax_ranks,str_remove,pattern = "[a-z]__") %>%
+  rowwise() %>%
+  filter(sum(reagent,lab,putative,decontam) > 0) %>%
+  ungroup() %>%
+  distinct() %>%
+  write_delim("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST_2_contaminant_taxa_summary.tsv","\t")
+
+  
+```
+
