@@ -10,15 +10,15 @@ The raw sequence data is housed at [NCBI SRA PRJNA629592](https://www.ncbi.nlm.n
 
 -   code
 
-This directory contains the code (as notebooks) for each step; detailed descriptions are found in that directory's README file.
+    -   This directory contains the code (as notebooks) for each step; detailed descriptions are found in that directory's README file.
 
 -   data
 
-This directory is where processed data is stored, and comes populated with items like sample metadata and several other reference files.
+    -   This directory is where processed data is stored, and comes populated with items like sample metadata and several other reference files.
 
 -   results
 
-Figures and tables from the paper which can be reproduced by running the notebooks in the `code` directory.
+    -   Figures and tables from the paper which can be reproduced by running the notebooks in the `code` directory.
 
 ### Notebooks
 
@@ -31,4 +31,4 @@ Running this analysis requires R. The following python tools are also required:
 
 #### Running
 
-Several steps are quite computationally expensive and use of an HPC is strongly suggested.
+Several steps are quite computationally intensive and use of an HPC is strongly suggested.
