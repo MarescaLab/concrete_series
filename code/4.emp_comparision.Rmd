@@ -167,12 +167,17 @@ qiime feature-table merge-seqs \
 ## ASSIGN TAX AND PLACE SEQS ON SILVA TREE ##
 ############################################
 
-# qiime fragment-insertion sepp \
-#   --i-representative-sequences data/processed/emp_data/emp_tapwater_and_concrete_seqs.qza \
-#   --i-reference-database data/reference/sepp-refs-silva-128.qza \
-#   --p-threads 10 \
-#   --o-tree data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza \
-#   --o-placements data/processed/emp_data/emp_concrete_and_tapwater_sepp_placements.qza
+FILE=data/reference/sepp-refs-silva-128.qza
+if [ ! -f "$FILE" ]; then
+    wget https://data.qiime2.org/2020.8/common/sepp-refs-silva-128.qza -O "$FILE"
+fi
+
+qiime fragment-insertion sepp \
+   --i-representative-sequences data/processed/emp_data/emp_tapwater_and_concrete_seqs.qza \
+   --i-reference-database data/reference/sepp-refs-silva-128.qza \
+   --p-threads 10 \
+   --o-tree data/processed/emp_data/emp_concrete_and_tapwater_sepp_tree.qza \
+   --o-placements data/processed/emp_data/emp_concrete_and_tapwater_sepp_placements.qza
 
 qiime fragment-insertion filter-features \
   --i-table data/processed/emp_data/emp_tapwater_and_concrete_table.qza \
@@ -185,15 +190,15 @@ qiime feature-table filter-seqs \
   --i-table data/processed/emp_data/sepp_filt_emp_tapwater_and_concrete_table.qza \
   --o-filtered-data data/processed/emp_data/emp_tapwater_and_concrete_table_filt_seqs.qza
 
-# qiime feature-classifier classify-sklearn \
-#  --i-classifier data/reference/silva-132-99-515-806-nb-classifier.qza \
-#  --i-reads data/processed/emp_data/emp_tapwater_and_concrete_table_filt_seqs.qza \
-#  --p-n-jobs 10 \
-#  --o-classification data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza
-# 
-# qiime metadata tabulate \
-#  --m-input-file data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza \
-#  --o-visualization data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qzv
+qiime feature-classifier classify-sklearn \
+  --i-classifier data/reference/silva-132-99-515-806-nb-classifier.qza \
+  --i-reads data/processed/emp_data/emp_tapwater_and_concrete_table_filt_seqs.qza \
+  --p-n-jobs 10 \
+  --o-classification data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza
+ 
+qiime metadata tabulate \
+  --m-input-file data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza \
+  --o-visualization data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qzv
 
 
 ##############################
