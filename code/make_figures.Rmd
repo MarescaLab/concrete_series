@@ -460,7 +460,9 @@ shannon_tab <- tableGrob(summary(shannon_lme)$coefficients %>%
                          rownames_to_column("Coefficient") %>% 
                          filter(Coefficient != "(Intercept)") %>% 
                          mutate_at(vars(c("Estimate", "p.value")), ~ signif(.,3)) %>% 
-                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"**"),paste(p.value))), rows = NULL, theme = ttheme_default(base_size = 9))
+                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"*"),paste(p.value)),
+                                p.value = if_else(p.value < 0.01, paste0(p.value,"*"),paste(p.value)),
+                                p.value = if_else(p.value < 0.001, paste0(p.value,"*"),paste(p.value))), rows = NULL, theme = ttheme_default(base_size = 9))
 
 shannon_tab <- gtable_add_rows(shannon_tab, heights = grobHeight(shan_title) + unit(5,"mm"), pos = 0)
 shannon_tab <- gtable_add_grob(shannon_tab,shan_title,1,1,1,ncol(shannon_tab))
@@ -510,7 +512,9 @@ faith_tab <- tableGrob(summary(faith_lme)$coefficients %>%
                          rownames_to_column("Coefficient") %>% 
                          filter(Coefficient != "(Intercept)") %>% 
                          mutate_at(vars(c("Estimate", "p.value")), ~ signif(.,3)) %>% 
-                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"**"),paste(p.value))), rows = NULL,theme = ttheme_default(base_size = 9))
+                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"*"),paste(p.value)),
+                                p.value = if_else(p.value < 0.01, paste0(p.value,"*"),paste(p.value)),
+                                p.value = if_else(p.value < 0.001, paste0(p.value,"*"),paste(p.value))), rows = NULL,theme = ttheme_default(base_size = 9))
 
 faith_tab <- gtable_add_rows(faith_tab, heights = grobHeight(faith_title) + unit(5,"mm"), pos = 0)
 faith_tab <- gtable_add_grob(faith_tab,faith_title,1,1,1,ncol(faith_tab))
@@ -618,7 +622,7 @@ permanova_table <- bind_rows(seq_summary,margin_summary) %>%
   filter(term %in% terms) %>% 
   select(Metric, terms_tested, Coefficient = "term", R2, F = "statistic", p.value) %>% 
   left_join(disp) %>% 
-  mutate(across(c("F","p.value","disp_p_val"),~round(.,3))) %>% 
+  mutate(across(c("F","p.value","disp_p_val","R2"),~round(.,3))) %>% 
   rename(`Terms Tested` = "terms_tested", `Dispersion p.value` = "disp_p_val")
 
 knitr::kable(permanova_table)
@@ -1202,7 +1206,9 @@ shannon_tab <- tableGrob(summary(shannon_lme)$coefficients %>%
                          rownames_to_column("Coefficient") %>% 
                          filter(Coefficient != "(Intercept)") %>% 
                          mutate_at(vars(c("Estimate", "p.value")), ~ signif(.,3)) %>% 
-                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"**"),paste(p.value))), rows = NULL, theme = ttheme_default(base_size = 9))
+                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"*"),paste(p.value)),
+                                p.value = if_else(p.value < 0.01, paste0(p.value,"*"),paste(p.value)),
+                                p.value = if_else(p.value < 0.001, paste0(p.value,"*"),paste(p.value))), rows = NULL, theme = ttheme_default(base_size = 9))
 
 shannon_tab <- gtable_add_rows(shannon_tab, heights = grobHeight(shan_title) + unit(5,"mm"), pos = 0)
 shannon_tab <- gtable_add_grob(shannon_tab,shan_title,1,1,1,ncol(shannon_tab))
@@ -1252,7 +1258,9 @@ faith_tab <- tableGrob(summary(faith_lme)$coefficients %>%
                          rownames_to_column("Coefficient") %>% 
                          filter(Coefficient != "(Intercept)") %>% 
                          mutate_at(vars(c("Estimate", "p.value")), ~ signif(.,3)) %>% 
-                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"**"),paste(p.value))), rows = NULL,theme = ttheme_default(base_size = 9))
+                         mutate(p.value = if_else(p.value < 0.05, paste0(p.value,"*"),paste(p.value)),
+                                p.value = if_else(p.value < 0.01, paste0(p.value,"*"),paste(p.value)),
+                                p.value = if_else(p.value < 0.001, paste0(p.value,"*"),paste(p.value))), rows = NULL,theme = ttheme_default(base_size = 9))
 
 faith_tab <- gtable_add_rows(faith_tab, heights = grobHeight(faith_title) + unit(5,"mm"), pos = 0)
 faith_tab <- gtable_add_grob(faith_tab,faith_title,1,1,1,ncol(faith_tab))
