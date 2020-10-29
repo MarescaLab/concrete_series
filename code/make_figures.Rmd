@@ -926,6 +926,7 @@ wrap_plots(emp_pcoa_image, emp_sim_horiz) +
 
 ```{r}
 library(patchwork)
+library(tidyverse)
 
 multiple <- c("Arcobacter", "Bryobacter", "Carnobacterium", "Lawsonella", "Modestobacter", "Salinicoccus", "Rhodocyclaceae", "Lawsonella", "Flavobacterium", "Rheinheimera soli") %>% unique()
 
@@ -935,10 +936,10 @@ logit <- c("Flavobacterium", "Lawsonella", "Rheinheimera soli", "Rhodocyclaceae"
   
 
 symbols <- data.frame(tax = multiple) %>% 
-  mutate(ind = if_else(tax %in% indic_sp, "*",""),
-         meta = if_else(tax %in% metaSeq, "#",""),
-         log = if_else(tax %in% logit, "^",""),
-         symbols = glue::glue("{ind}{meta}{log}")) %>% 
+  mutate(meta = if_else(tax %in% metaSeq, "a",""), 
+         ind = if_else(tax %in% indic_sp, "b",""),
+         log = if_else(tax %in% logit, "c",""),
+         symbols = glue::glue("{meta}{ind}{log}")) %>% 
   rename(og_taxa = "tax")
 
 
@@ -947,7 +948,8 @@ mult <- plot.taxa(taxa = multiple, smooth_method = "lm", ncol = 3)
 
 mult_df <- mult$data %>% 
   left_join(symbols) %>% 
-  mutate(tax_and_level = glue::glue("{tax_and_level}{symbols}"))
+  #mutate(tax_and_level = str_remove(tax_and_level, "([kpcofgs])")) %>% 
+  mutate(tax_and_level = glue::glue("{og_taxa} ({symbols})"))
 
 mult$data <- mult_df
 
