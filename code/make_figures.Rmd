@@ -257,129 +257,8 @@ heat_tree(node_label = taxon_names,
          type = "cairo", dpi = 600, width = 12, height = 12)
 ```
 
-## Figure 4: Influence of precursors on concrete bacterial communities
 
-Some text/labels in the figure were tweaked in illustrator after export.
-
-```{r message=FALSE, warning=FALSE}
-library(ggalluvial)
-library(patchwork)
-library(tidyverse)
-library(ggtext)
-
-#Load sourcetracking results
-mit_source_prop <- read_delim("analysis/source_tracker/st_out_mit/mixing_proportions.txt", delim = "\t")
-unmit_source_prop <- read_delim("analysis/source_tracker/st_out_unmit/mixing_proportions.txt", delim = "\t")
-
-st_results <- full_join(mit_source_prop,unmit_source_prop) %>% 
-  mutate(FlyAsh = if_else(is.na(FlyAsh),0,FlyAsh)) %>% 
-  rename(Water = "tapwater") %>% 
-  column_to_rownames("#SampleID")
-
-#load sample metadata
-metadata <- read.table('data/sample-metadata.tsv',sep='\t',h=T,check=F,comment='') %>%
-  mutate(SourceSink = if_else(Type == "Concrete", "sink","source"), 
-         Env= Description,) %>% 
-  column_to_rownames("#SampleID")
-
-#Load concrete composition
-concrete_composition <- read_csv("analysis/source_tracker/actual_concrete_composition.csv")
-```
-
-Plot leave-one-out validation
-
-```{r}
-#read in results
-loo_results <- read_delim("analysis/source_tracker/st_out_mit/loo/mixing_proportions.txt", delim = "\t") %>%
-  rename(sink = "collapse_col") %>%
-  gather("source","val", -sink) %>%
-  mutate(val = round(val, 3))
-
-#Plot and save
-(loo_heatmap <- loo_results %>% ggplot(aes(source, sink, fill = val)) +
-  geom_tile() +
-  geom_text(aes(label = val), color = "black") +
-  coord_fixed() +
-  scale_fill_gradient(low = "grey100", high = "grey50") +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + 
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF5_sourcetracking_loo.png", type = "cairo"))
-```
-
-```{r}
-#With unknowns
-
-for_alluvial <- st_results %>% 
-  rownames_to_column("sample") %>% 
-  gather("source","value", -sample) %>% 
-  left_join(metadata %>% 
-    rownames_to_column("sample") %>% 
-    select(sample, Months, Mitigation_status, Description)) %>%
-  filter(Months == 0 | Months == 21) %>%
-  group_by(Description, source) %>%
-  mutate(value = sum(value) / 3, type = glue::glue("Biologically inferred<br>source composition ({Months})")) %>%
-  ungroup() %>%
-  select(-sample, -Description) %>%
-  distinct() %>%
-  bind_rows(concrete_composition %>% mutate(type = "Concrete physical<br>composition", Mitigation_status = str_to_lower(Mitigation_status))) %>%
-  mutate(source = factor(source,levels = c("FlyAsh","Powder","Gravel","Sand","Water","Unknown"))) %>%
-  group_by(type,Mitigation_status) %>% 
-  mutate(value = value / sum(value))
-
-months_to_plot <- for_alluvial %>% filter(!is.na(Months)) %>% pull(Months) %>% unique() %>% sort()
-
-#####################
-##Unmitigated samples
-#####################
-
-unmit_source <- for_alluvial %>% filter(Mitigation_status =="unmitigated")
-
-unmit_unknown <- unmit_source %>% ggplot(aes(factor(type, levels = c("Concrete physical<br>composition",glue::glue("Biologically inferred<br>source composition ({months_to_plot})"))), stratum = source, alluvium = source, y= value, fill = source, label = source)) +
-  scale_x_discrete(expand = c(.1, .1)) +
-  geom_alluvium() +
-  geom_stratum(alpha = .5) +
-  geom_text(stat = "stratum", size = 3) + 
-  theme_minimal() + 
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),
-        legend.position = "none",
-        axis.text.x = element_markdown(angle = 45, hjust = 1, vjust = 1, halign = 0.5, valign = 1)) + 
-  labs(y = NULL, x = NULL) + 
-  ggtitle("ASR-reactive") +
-  scale_fill_brewer(palette = "Greys")
-
-###################
-##Mitigated samples
-###################
-unmit_source <- for_alluvial %>% filter(Mitigation_status =="mitigated")
-
-mit_unknown <- unmit_source %>% ggplot(aes(factor(type, levels = c("Concrete physical<br>composition",glue::glue("Biologically inferred<br>source composition ({months_to_plot})"))), stratum = source, alluvium = source, y= value, fill = source, label = source)) +
-  scale_x_discrete(expand = c(.1, .1)) +
-  geom_alluvium() +
-  geom_stratum(alpha = .5) +
-  geom_text(stat = "stratum", size = 3) + theme_minimal() + 
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = "none",
-        axis.text.x = element_markdown(angle = 45, hjust = 1, vjust = 1, halign = 0.5, valign = 1)) + 
-  labs(y = NULL, x = NULL) + 
-  ggtitle("ASR-mitigated") +
-  scale_fill_brewer(palette = "Greys")
-
-#Export combined figure
-unmit_unknown + mit_unknown + plot_layout(guides = 'collect') + plot_annotation(tag_levels = "a") + 
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_SourceTracker_precursors.pdf", 
-         device = cairo_pdf, dpi = 600, width = 6, height = 4) +
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_SourceTracker_precursors.eps", 
-         device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6, height = 4) +
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_SourceTracker_precursors.png", 
-         type = "cairo", dpi = 600, width = 6, height = 4)
-```
-
-## Figure 5: Within-sample diversity over time.
+## Figure 4: Within-sample diversity over time.
 
 Linear mixed effects model of alpha diversity data, for DECONTAMINATED data
 
@@ -563,14 +442,137 @@ design <- "
 wrap_plots(shannon_tab, shannon, shan_precursors, faith_tab, faith, faith_precursors) + 
   plot_layout(design = design, guides = "collect",heights = c(1,1,0.3)) + 
   plot_annotation(tag_levels = 'a') + 
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_alpha_diversity_decontam.pdf", 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_alpha_diversity_decontam.pdf", 
          device = cairo_pdf, dpi = 600, width = 6.8, height = 4, scale = 1.5) +
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_alpha_diversity_decontam.eps", 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_alpha_diversity_decontam.eps", 
          device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6.8, height = 4, scale = 1.5) +
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_alpha_diversity_decontam.png", 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig4_alpha_diversity_decontam.png", 
          type = "cairo", dpi = 600, width = 6.8, height = 4, scale = 1.5)
 
 ```
+
+## Figure 5: Influence of precursors on concrete bacterial communities
+
+Some text/labels in the figure were tweaked in illustrator after export.
+
+```{r message=FALSE, warning=FALSE}
+library(ggalluvial)
+library(patchwork)
+library(tidyverse)
+library(ggtext)
+
+#Load sourcetracking results
+mit_source_prop <- read_delim("analysis/source_tracker/st_out_mit/mixing_proportions.txt", delim = "\t")
+unmit_source_prop <- read_delim("analysis/source_tracker/st_out_unmit/mixing_proportions.txt", delim = "\t")
+
+st_results <- full_join(mit_source_prop,unmit_source_prop) %>% 
+  mutate(FlyAsh = if_else(is.na(FlyAsh),0,FlyAsh)) %>% 
+  rename(Water = "tapwater") %>% 
+  column_to_rownames("#SampleID")
+
+#load sample metadata
+metadata <- read.table('data/sample-metadata.tsv',sep='\t',h=T,check=F,comment='') %>%
+  mutate(SourceSink = if_else(Type == "Concrete", "sink","source"), 
+         Env= Description,) %>% 
+  column_to_rownames("#SampleID")
+
+#Load concrete composition
+concrete_composition <- read_csv("analysis/source_tracker/actual_concrete_composition.csv")
+```
+
+Plot leave-one-out validation
+
+```{r}
+#read in results
+loo_results <- read_delim("analysis/source_tracker/st_out_mit/loo/mixing_proportions.txt", delim = "\t") %>%
+  rename(sink = "collapse_col") %>%
+  gather("source","val", -sink) %>%
+  mutate(val = round(val, 3))
+
+#Plot and save
+(loo_heatmap <- loo_results %>% ggplot(aes(source, sink, fill = val)) +
+  geom_tile() +
+  geom_text(aes(label = val), color = "black") +
+  coord_fixed() +
+  scale_fill_gradient(low = "grey100", high = "grey50") +
+  theme_minimal() +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF5_sourcetracking_loo.png", type = "cairo"))
+```
+
+```{r}
+#With unknowns
+
+for_alluvial <- st_results %>% 
+  rownames_to_column("sample") %>% 
+  gather("source","value", -sample) %>% 
+  left_join(metadata %>% 
+    rownames_to_column("sample") %>% 
+    select(sample, Months, Mitigation_status, Description)) %>%
+  filter(Months == 0 | Months == 21) %>%
+  group_by(Description, source) %>%
+  mutate(value = sum(value) / 3, type = glue::glue("Biologically inferred<br>source composition ({Months})")) %>%
+  ungroup() %>%
+  select(-sample, -Description) %>%
+  distinct() %>%
+  bind_rows(concrete_composition %>% mutate(type = "Concrete physical<br>composition", Mitigation_status = str_to_lower(Mitigation_status))) %>%
+  mutate(source = factor(source,levels = c("FlyAsh","Powder","Gravel","Sand","Water","Unknown"))) %>%
+  group_by(type,Mitigation_status) %>% 
+  mutate(value = value / sum(value))
+
+months_to_plot <- for_alluvial %>% filter(!is.na(Months)) %>% pull(Months) %>% unique() %>% sort()
+
+#####################
+##Unmitigated samples
+#####################
+
+unmit_source <- for_alluvial %>% filter(Mitigation_status =="unmitigated")
+
+unmit_unknown <- unmit_source %>% ggplot(aes(factor(type, levels = c("Concrete physical<br>composition",glue::glue("Biologically inferred<br>source composition ({months_to_plot})"))), stratum = source, alluvium = source, y= value, fill = source, label = source)) +
+  scale_x_discrete(expand = c(.1, .1)) +
+  geom_alluvium() +
+  geom_stratum(alpha = .5) +
+  geom_text(stat = "stratum", size = 3) + 
+  theme_minimal() + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_markdown(angle = 45, hjust = 1, vjust = 1, halign = 0.5, valign = 1)) + 
+  labs(y = NULL, x = NULL) + 
+  ggtitle("ASR-reactive") +
+  scale_fill_brewer(palette = "Greys")
+
+###################
+##Mitigated samples
+###################
+unmit_source <- for_alluvial %>% filter(Mitigation_status =="mitigated")
+
+mit_unknown <- unmit_source %>% ggplot(aes(factor(type, levels = c("Concrete physical<br>composition",glue::glue("Biologically inferred<br>source composition ({months_to_plot})"))), stratum = source, alluvium = source, y= value, fill = source, label = source)) +
+  scale_x_discrete(expand = c(.1, .1)) +
+  geom_alluvium() +
+  geom_stratum(alpha = .5) +
+  geom_text(stat = "stratum", size = 3) + theme_minimal() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_markdown(angle = 45, hjust = 1, vjust = 1, halign = 0.5, valign = 1)) + 
+  labs(y = NULL, x = NULL) + 
+  ggtitle("ASR-mitigated") +
+  scale_fill_brewer(palette = "Greys")
+
+#Export combined figure
+unmit_unknown + mit_unknown + plot_layout(guides = 'collect') + plot_annotation(tag_levels = "a") + 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_SourceTracker_precursors.pdf", 
+         device = cairo_pdf, dpi = 600, width = 6, height = 4) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_SourceTracker_precursors.eps", 
+         device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6, height = 4) +
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/Fig5_SourceTracker_precursors.png", 
+         type = "cairo", dpi = 600, width = 6, height = 4)
+```
+
 
 ## Table 1: PERMANOVA results
 
