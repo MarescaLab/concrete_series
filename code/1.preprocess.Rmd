@@ -357,6 +357,11 @@ hostname
 start=`date +%s`
 source activate qiime2-2020.2
 
+FILE=data/reference/sepp-refs-silva-128.qza
+if [ ! -f "$FILE" ]; then
+    wget https://data.qiime2.org/2020.8/common/sepp-refs-silva-128.qza -O "$FILE"
+fi
+
 qiime fragment-insertion sepp \
   --i-representative-sequences data/qiime2/pre_sepp_seqs.qza \
   --i-reference-database data/reference/sepp-refs-silva-128.qza \
