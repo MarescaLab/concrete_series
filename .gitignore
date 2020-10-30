@@ -8,3 +8,4 @@ data/raw/
 *demux.qza
 *.qza
 *.qzv
+data/processed/biom_tables

@@ -1,0 +1,522 @@
+otu	taxonomy	num_methods	decontam_prev	prop_all	se_all	sparcc_all	subtract_neg
+0050c9840b633a65d2171794d3f3a2f9	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Propionibacteriales; f__Nocardioidaceae; g__Marmoricola	4	NA	TRUE	TRUE	TRUE	TRUE
+00e0207526b92fa64d687dec94ee8ac5	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Xanthobacteraceae	4	TRUE	NA	TRUE	TRUE	TRUE
+01a6ed26487d761f64ef600ca90b84ae	k__Bacteria; p__Proteobacteria; c__Deltaproteobacteria; o__Myxococcales; f__Polyangiaceae; g__Pajaroellobacter	2	TRUE	NA	NA	NA	TRUE
+01f204b5c659f751a7bbb54c78a963b7	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Caulobacterales; f__Caulobacteraceae; g__Brevundimonas	2	TRUE	NA	NA	NA	TRUE
+02474ddf8c2aeee9bd0fd0fe01d6159e	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+0258145e1c146c2f4be7cbb88a273660	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Lachnospiraceae	4	NA	TRUE	TRUE	TRUE	TRUE
+02aabaa50ea5d13a7caa863b045ea27e	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Cardiobacteriales; f__Cardiobacteriaceae; g__Cardiobacterium; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+033078866cc4d0634731f24640bfd776	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+03555748a90370dc4668636077ffb6b2	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Propionibacteriales; f__Propionibacteriaceae; g__Cutibacterium	2	TRUE	NA	NA	NA	TRUE
+044223e228a4eb866bb2a8a09ae45a69	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Noviherbaspirillum	1	NA	TRUE	NA	NA	NA
+04d9d348fea25dbdf103712b6f9198f8	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Domibacillus	3	TRUE	NA	NA	TRUE	TRUE
+054d2b807479ba1b1fac77a50b05c9a9	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	1	NA	NA	NA	TRUE	NA
+05c51e7d82330e9c1d2df4e1a479fe55	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+064ada6ec07ce99b7b53e6740ca140be	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus; s__Streptococcus varani	4	NA	TRUE	TRUE	TRUE	TRUE
+0843c8d6f6001c9fe632a422e49e7725	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+085062d3d1e0509dd1b48af4b4e5e217	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+089148672f81dc6a77e62bea02249304	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Flavobacteriaceae; g__Capnocytophaga	4	NA	TRUE	TRUE	TRUE	TRUE
+0907bbdedc3ca3c480753e4ac91c3337	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+09bfe575101107d4dd382c078b599d52	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Haemophilus; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+09d76b49bb4637c3a7ca557bcbc584a1	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Hydrogenophaga	1	NA	TRUE	NA	NA	NA
+0a0e2ab4b0897e9ce348fad62b0b6061	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Planomicrobium	1	NA	TRUE	NA	NA	NA
+0bcdd66c69ecef6622d0e280a36aa9e9	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Carnobacteriaceae; g__Marinilactibacillus; s__Marinilactibacillus piezotolerans	1	NA	TRUE	NA	NA	NA
+0bf757a0c04699fca2a8f2dc4b330fd8	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+0c0396e87d6ca889d2a7410113b73866	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Listeriaceae; g__Brochothrix; s__Brochothrix thermosphacta	3	TRUE	NA	NA	TRUE	TRUE
+0c95b7568439b18494f4fa83b53359a3	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Novosphingobium	1	NA	TRUE	NA	NA	NA
+0d1dc08cc4a4caa4a24d15339baf1adc	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Limnobacter	1	NA	TRUE	NA	NA	NA
+0d9ad8618bc02be497fbc0e3b8140d06	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Paenibacillaceae; g__Paenibacillus	1	NA	TRUE	NA	NA	NA
+0e6a3620ff06fa2e73e70089ca398e1c	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Solibacillus	4	TRUE	NA	TRUE	TRUE	TRUE
+0e6c9b27b9e7819a3ae3feb4c75fd1f9	k__Bacteria; p__Cyanobacteria; c__Oxyphotobacteria; o__Chloroplast	2	TRUE	NA	NA	NA	TRUE
+103f518cf08a7c383caebb0e75c64461	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+1076962c9c269bce241de9e049691830	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Halomonadaceae; g__Halomonas	2	NA	NA	TRUE	TRUE	NA
+1153f1c61aa34141e28d0a549965d0c6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	1	NA	NA	TRUE	NA	NA
+11666f9fe98a1684fdb4235a533dd855	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiaceae; g__Martelella	1	NA	NA	TRUE	NA	NA
+11f9f564702aa3ae62b2d14fee255794	k__Bacteria; p__Thermotogae; c__Thermotogae; o__Petrotogales; f__Petrotogaceae; g__Oceanotoga; s__Oceanotoga sp. JC186	5	TRUE	TRUE	TRUE	TRUE	TRUE
+1208942984895482e2527c5d3b3020f6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+12b1f9d3dea8e1133513bf7840b267ca	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+12ec268d0b4e4327000cb7a515185b86	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Methylobacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+12fed52961140094dadc35971716fdc2	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Elizabethkingia	5	TRUE	TRUE	TRUE	TRUE	TRUE
+136c38963998529d2abbbfbbe5c2866a	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+13c704d73308eac7943b02fa160021d9	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Massilia	1	NA	TRUE	NA	NA	NA
+1540374f5e00a6dc925f0654cab109cd	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus	3	TRUE	NA	TRUE	NA	TRUE
+1570e4556f965bb43f7c8797337f70fe	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Halomonadaceae; g__Marinospirillum	2	TRUE	NA	NA	NA	TRUE
+16ad9d1770ba82d2474e388afc097ac6	k__Bacteria; p__Proteobacteria; c__Deltaproteobacteria; o__Desulfuromonadales; f__Geobacteraceae; g__Geobacter	4	NA	TRUE	TRUE	TRUE	TRUE
+190b0cc94a6fbd4e641b90d147465962	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+191867784396f8527632902c639d47cf	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Caulobacterales; f__Caulobacteraceae; g__uncultured	4	TRUE	NA	TRUE	TRUE	TRUE
+1949dca050b80045edcc0396ffbc0b4f	k__Bacteria; p__Chloroflexi; c__Chloroflexia; o__Thermomicrobiales; f__JG30-KF-CM45; g__uncultured anaerobic ammonium-oxidizing bacterium; s__uncultured anaerobic ammonium-oxidizing bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+1991caeeb87c19d323f503b0888883ed	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	3	TRUE	NA	TRUE	NA	TRUE
+199a520065813a96954a4eb7394d74f3	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+1ae16ba7959c845d2845ec8efc83c767	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+1b3da1a3cfbf854fee0d407c4bd658b9	k__Bacteria; p__Firmicutes; c__Negativicutes; o__Selenomonadales; f__Veillonellaceae; g__Veillonella	4	NA	TRUE	TRUE	TRUE	TRUE
+1b656bfb4cb1b310d45c64dc634a6d20	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Halothiobacillales; f__Halothiobacillaceae; g__Thiovirga	1	NA	TRUE	NA	NA	NA
+1b6aeb25233c1cbbb4af3217af330725	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Nitrincolaceae; g__Nitrincola	5	TRUE	TRUE	TRUE	TRUE	TRUE
+1c6b0d409435e2dd1165f02719240d29	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Pelomonas	1	NA	NA	NA	TRUE	NA
+1c79a0c5633ab9f135f2a3a76cbff48e	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Kocuria	1	NA	TRUE	NA	NA	NA
+1cd8e7a20280e15b3a1463bbff23cad3	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Rhodanobacteraceae; g__Rhodanobacter	4	NA	TRUE	TRUE	TRUE	TRUE
+1d1b4eb232d6be7d64108d25e797b485	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	2	TRUE	NA	NA	NA	TRUE
+1dac39b42d17a1ed676b8b41361458e6	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Domibacillus	3	NA	NA	TRUE	TRUE	TRUE
+1dd64c04870834a2fa254c4f00e41d6b	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Tannerellaceae; g__Tannerella	4	NA	TRUE	TRUE	TRUE	TRUE
+1e06a7cc19f301388aa0afb30f99b78f	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Neisseriaceae; g__uncultured; s__uncultured bacterium	3	TRUE	NA	TRUE	NA	TRUE
+1e27a7236f5ad4cbdb677656b3252203	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Bacteroidaceae; g__Bacteroides	3	NA	NA	TRUE	TRUE	TRUE
+1e323283bf713890247aa3ccb9f85ac1	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Nitrincolaceae; g__Nitrincola	5	TRUE	TRUE	TRUE	TRUE	TRUE
+1e487ae5ad9a3157a99790bbdd62188d	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+1ebdd56475c326397dbc3d3ff22ca078	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	2	NA	NA	TRUE	TRUE	NA
+1f3fe07cb238314d51860c1c1c2f2df6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Psychrobacter	4	TRUE	NA	TRUE	TRUE	TRUE
+20028159533a5f8439bfbda75ba3cbbe	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+2032085448e0917fa7fa9980f0fe73a2	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Gammaproteobacteria Incertae Sedis; f__Unknown Family; g__Acidibacter	3	NA	NA	TRUE	TRUE	TRUE
+20cd4aaf73199aefea7d373d063a2118	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	4	TRUE	NA	TRUE	TRUE	TRUE
+20fd6a18d77708d78d709cf4662dfdf5	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Sphingobacteriales; f__env.OPS 17; g__uncultured eubacterium env.OPS 17; s__uncultured eubacterium env.OPS 17	4	NA	TRUE	TRUE	TRUE	TRUE
+210bb9bdf410d58ec6fb9888217515ca	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Glutamicibacter	1	NA	TRUE	NA	NA	NA
+211bae2a5b06fa01f3e26000d2ea8df4	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+216d7e86ffd761868d2d08560c6e150c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	1	NA	TRUE	NA	NA	NA
+21ce9d58efddd3798b2a1c6d60b4bfe9	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	3	TRUE	NA	TRUE	NA	TRUE
+22256064bad8398ba83e97045a04ea25	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Pseudarthrobacter	1	NA	TRUE	NA	NA	NA
+23d2ed83215ac0ec86f586b24e17cdb6	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+249c047fb935318098e3fccbe3e63e2b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	1	NA	TRUE	NA	NA	NA
+25a26350abc70cedd589c71cf9cd7c2b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Massilia	1	NA	TRUE	NA	NA	NA
+25f16b418e55ae9d09856a66663bce2f	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Cloacibacterium	2	TRUE	NA	NA	NA	TRUE
+26b1a897a897de35aef5ed6cfeea4e0d	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	1	NA	TRUE	NA	NA	NA
+26e1b3a158e89236e9d3e8f2b4cb3443	k__Bacteria; p__Firmicutes; c__Clostridia; o__Thermoanaerobacterales; f__Family III; g__Thermoanaerobacterium; s__Thermoanaerobacterium thermosaccharolyticum	4	NA	TRUE	TRUE	TRUE	TRUE
+27cc5fcf86ce34d4b7fae2c05a90fb87	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae; g__Aurantimicrobium	3	NA	TRUE	TRUE	TRUE	NA
+27ee308a2230fc2952cde7b70655f5be	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Rahnella	1	NA	NA	TRUE	NA	NA
+28bbf49891cc68da6032ee69c26d50e4	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Bergeyella; s__uncultured Bergeyella sp.	4	NA	TRUE	TRUE	TRUE	TRUE
+290323b671be70a70ec46c60370627e4	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Fusobacteriaceae; g__Fusobacterium	3	NA	NA	TRUE	TRUE	TRUE
+2b179baae1faf373053faf244d727bea	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Planococcus	1	NA	TRUE	NA	NA	NA
+2b26043b50e33702dfe9ce696af6b548	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+2ba096481e1cb9022afce0158640c0f5	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Pandoraea	4	TRUE	NA	TRUE	TRUE	TRUE
+2cf4ba262b32a116c0482a4da9e8903f	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Carnobacteriaceae; g__Desemzia	1	NA	TRUE	NA	NA	NA
+2d41b5a6f91813e9eeba949278786d6e	k__Bacteria; p__Cyanobacteria; c__Oxyphotobacteria; o__Chloroplast	3	NA	NA	TRUE	TRUE	TRUE
+2d5b74b1760d71e12b9ea49234aad21f	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+2e5976501f2d1a58cfd8425c54f5de0f	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	2	NA	NA	NA	TRUE	TRUE
+2ed398f0f426ecca826c7c7fae5e0dc8	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Leptotrichiaceae; g__Leptotrichia	2	TRUE	NA	NA	NA	TRUE
+2efa3f7b03a3a6ca8d922f0218545716	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+2f4d28c5f8c02ca77dad77b605482065	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+316a3831a4890df333023d43ef4c5bb9	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Dermabacteraceae; g__Brachybacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+32b73b47c2494cd685e54b4bb17acb86	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+32d4c2cda5ffed4c57f62049c2b2c644	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Carnobacteriaceae; g__Granulicatella	2	TRUE	NA	NA	NA	TRUE
+332094570df9d1f7fe1f0b708c361d99	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Variovorax	1	NA	NA	NA	TRUE	NA
+35125724fe517027e815fffc72d98270	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Psychrobacter	2	TRUE	NA	NA	NA	TRUE
+3574a0c8ecedc041e13762a845d5eba6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+358b4073e3afbb3e6ae9cbc5f88681ef	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+35f4ff7597033f4ca1225f397f8025ab	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Sphingobacteriales; f__Sphingobacteriaceae; g__Sphingobacterium	2	TRUE	NA	NA	NA	TRUE
+36be0bdc9682abac81f2e6330e3020af	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae; g__Microbacterium	3	NA	TRUE	TRUE	TRUE	NA
+36fe84b9e0b2c5da5834aa304cb93b16	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Corynebacteriaceae; g__Corynebacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+391c0ec4a96c8cc11297d12d1ef007ff	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	5	TRUE	TRUE	TRUE	TRUE	TRUE
+39cc0fb9aecbd81918ca116b45eea2bd	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Haemophilus	2	TRUE	NA	NA	NA	TRUE
+3a693d05d86e1d88ff211f041da91cc2	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Delftia	2	TRUE	NA	NA	NA	TRUE
+3b298189ac33424b4f1525d049f9b888	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Xanthobacteraceae; g__Bradyrhizobium	3	NA	NA	TRUE	TRUE	TRUE
+3b5cad4fbbcb8da113a718b98f9d10ac	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Sphingobacteriales; f__Sphingobacteriaceae; g__Pedobacter; s__Pedobacter sp. oral clone AV100	3	NA	TRUE	TRUE	TRUE	NA
+3b8b3aca43b9b617b8f50914d264af19	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Clostridiaceae 1; g__uncultured; s__uncultured Bacillus sp.	4	NA	TRUE	TRUE	TRUE	TRUE
+3d01e2efce0f10fedc44503b607679c9	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Anoxybacillus	3	TRUE	NA	TRUE	NA	TRUE
+3d0d5979663efd4c587b001b2417adeb	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Xanthomonadaceae; g__Stenotrophomonas	4	TRUE	NA	TRUE	TRUE	TRUE
+3dcd708063a4b7b5c846c429bb242eb8	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	5	TRUE	TRUE	TRUE	TRUE	TRUE
+3ebf4db8f078bf9398544c77005ccfb8	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Family XI; g__Peptoniphilus; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+3f9e6f4082dd5c61f98d1844cd909b10	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	1	NA	NA	NA	TRUE	NA
+404c53985bbfc6b0a86b691c69f0264b	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	3	TRUE	NA	NA	TRUE	TRUE
+40cb4339488a38dff9ec741ff9a8a2c6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Alteromonadales; f__Idiomarinaceae; g__Aliidiomarina; s__Idiomarina sp. 11	5	TRUE	TRUE	TRUE	TRUE	TRUE
+40db8220b183418ecaefd8559ff9bf7c	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	3	TRUE	NA	TRUE	NA	TRUE
+4271597e7230e8ee4cdb6d42899e14ec	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae; g__Microbacterium	3	NA	TRUE	TRUE	TRUE	NA
+429c5b9ec61785c42ecb01fded9e8982	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Ralstonia	4	NA	TRUE	TRUE	TRUE	TRUE
+441a4a9be8052c580e1ab34a918324c0	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Psychrobacter	4	NA	TRUE	TRUE	TRUE	TRUE
+449c1ca5cd4f94ed27fd2bd997132993	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales	2	TRUE	NA	NA	NA	TRUE
+44b10cbb3a7a87ab208034e3a35b6e9f	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae	1	NA	TRUE	NA	NA	NA
+44d40c1ad9bfced2aa392a43056d0d9e	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Lachnospiraceae; g__Lachnoanaerobaculum	2	TRUE	NA	NA	NA	TRUE
+44d72259f2936d1ed22e191940c9dedd	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhodospirillales; f__Rhodospirillaceae; g__Candidatus Riegeria; s__uncultured bacterium	1	NA	NA	TRUE	NA	NA
+451f0ab47846d5de06f21efc1fc9b80d	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Sphingobacteriales; f__Sphingobacteriaceae; g__uncultured; s__wastewater metagenome	2	TRUE	NA	NA	NA	TRUE
+45a05fa69bac1c9a7e7440a0f802992a	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Lactobacillaceae; g__Lactobacillus	2	TRUE	NA	NA	NA	TRUE
+45d9bedafdc725808dd63399d2c06acc	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+4844cf2b4a1f54d910af6255ab55f086	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	1	NA	NA	NA	NA	TRUE
+49c7d4d718bf7b47adf36d968de86e26	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Psychrobacter	4	NA	TRUE	TRUE	TRUE	TRUE
+4ab6d004ec29574c7d725b4a88c57790	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiaceae; g__Mesorhizobium	4	TRUE	NA	TRUE	TRUE	TRUE
+4aebf30dc703cd79465627d08797502a	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Actinomycetales; f__Actinomycetaceae; g__Actinomyces; s__Actinomyces massiliensis 4401292	3	TRUE	NA	TRUE	NA	TRUE
+4b3c94fe3f19676b62a928d4c7b3d084	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Anaerobacillus; s__Anaerobacillus alkalidiazotrophicus	1	NA	NA	TRUE	NA	NA
+4bc4b05b9912a55b82c0c8c66813b0e1	k__Bacteria; p__Cyanobacteria; c__Oxyphotobacteria; o__Chloroplast	2	TRUE	NA	NA	NA	TRUE
+4c00fcdb92e741ec05674e07d0ce9547	k__Bacteria; p__Patescibacteria; c__Saccharimonadia; o__Saccharimonadales; f__Saccharimonadaceae	4	NA	TRUE	TRUE	TRUE	TRUE
+4cb9adeeb95995e20343d9fa213270fb	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+4d94cb953d6e11a646cf01274ed90cc7	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Lactobacillaceae; g__Lactobacillus	4	TRUE	NA	TRUE	TRUE	TRUE
+4d966713213bc6538bbb5d054f8022e1	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+4e1d64b04af2a588a51782730b2e8f13	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Hydrogenophaga	1	NA	TRUE	NA	NA	NA
+4e5896e7228a140217a9edb4ad013479	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Bacteroidaceae; g__Bacteroides	4	NA	TRUE	TRUE	TRUE	TRUE
+4f962277b8ae6bd9a707543fbe3c0766	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Carnobacteriaceae; g__Desemzia	1	NA	TRUE	NA	NA	NA
+4fa6f7058a7a54428b7afe246e3b8256	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Nesterenkonia	2	TRUE	NA	NA	NA	TRUE
+4fa90ee6d113286f13b4ac61794e555d	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	5	TRUE	TRUE	TRUE	TRUE	TRUE
+505dcf0fbb1bd9b5c5a3f1fe4fb46adc	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Flavobacteriaceae; g__Capnocytophaga	4	NA	TRUE	TRUE	TRUE	TRUE
+50ba4a1b207da2dac3e4fc7d9e567f8a	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Sphingobacteriales; f__Sphingobacteriaceae; g__Pedobacter	1	NA	NA	TRUE	NA	NA
+5100d4993a5794156be991b45ef9449f	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Flavobacteriaceae; g__Capnocytophaga	4	NA	TRUE	TRUE	TRUE	TRUE
+5132d0eec2f7e2521b9daae57d88c414	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	1	NA	TRUE	NA	NA	NA
+51463f14cf9c8644d1416ea6bbb3e885	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Vibrionales; f__Vibrionaceae; g__Vibrio; s__Vibrio anguillarum	2	TRUE	NA	NA	NA	TRUE
+5150389d57f93991ab154c3cb672907e	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Pleomorphomonadaceae; g__uncultured; s__uncultured Rhizobiales bacterium	4	TRUE	NA	TRUE	TRUE	TRUE
+518edc4c723c95d15050a4946134f2ab	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+51b3b9f6010e7f2ebab9d4bb5f7ee1a8	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Flavobacteriaceae; g__Capnocytophaga	3	TRUE	NA	TRUE	NA	TRUE
+52101dee0bc1ec263dbccd4269abf4ad	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Halomonadaceae; g__Halomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+522074e5c1a74c70799105e9020a527c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Neisseriaceae; g__Eikenella; s__uncultured bacterium	2	TRUE	NA	NA	NA	TRUE
+532cda04275e1d6828740a561287614b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+53d24f419081d3cfe962d14f70b10626	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Escherichia-Shigella	4	NA	TRUE	TRUE	TRUE	TRUE
+53fa149c8d3a85f0ffa9a4b64cbb622b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+542864bd81e0179408a52ae3d90d0669	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+543677c7f379ea91fb1f368672b748b7	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	1	NA	TRUE	NA	NA	NA
+54406a0f185adb91733503c8c0782b40	k__Bacteria; p__Firmicutes; c__Negativicutes; o__Selenomonadales; f__Veillonellaceae; g__Selenomonas 3	4	NA	TRUE	TRUE	TRUE	TRUE
+5524435ad4e59e693ed5a39161cd5811	k__Bacteria; p__Firmicutes; c__Negativicutes; o__Selenomonadales; f__Veillonellaceae; g__Veillonella	2	TRUE	NA	NA	NA	TRUE
+553451bee513306ea6c46f1ccb9e72a2	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+55e7a7296076f5037dd619000fc50345	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	5	TRUE	TRUE	TRUE	TRUE	TRUE
+5647fe7d160fce76bbb665e007aab479	k__Bacteria; p__Acidobacteria; c__Subgroup 5 ; s__NA	4	NA	TRUE	TRUE	TRUE	TRUE
+576662e88334908293991b8d17ab6509	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+58bdcf4cd9ec57b9531fbba19bd0c30a	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Dysgonomonadaceae	4	TRUE	NA	TRUE	TRUE	TRUE
+58e1833fd8845ff26cfd811af7b0734b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+591709f18771b2fea70531ef9c4d14b0	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Aeromonadales; f__Aeromonadaceae; g__Aeromonas	2	TRUE	NA	NA	NA	TRUE
+59820c1d49639f04ba206c9ac31e3b4c	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Ruminococcaceae; g__[Eubacterium] coprostanoligenes group	4	NA	TRUE	TRUE	TRUE	TRUE
+5a218ca5b6b345d06fa4e0d5fdad7363	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+5b073449cbdef91fed7dcb69aa4019fd	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+5b0e3726b816b3250d903e1536b8ffa3	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	5	TRUE	TRUE	TRUE	TRUE	TRUE
+5b3804b6d58cefb1a7dd4dca00b68caa	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae	4	NA	TRUE	TRUE	TRUE	TRUE
+5b487515a0a22bd5a86b1069a45f1840	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Propionibacteriales; f__Propionibacteriaceae; g__Acidipropionibacterium	2	NA	NA	TRUE	TRUE	NA
+5c1bd6b10d8ddefa77c53205850e5c4f	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	2	TRUE	NA	NA	NA	TRUE
+5c261099100eb9083cbe24da547cac47	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Lautropia; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+5c342c931a9e9e086825c6e87b050746	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Family XII; g__Exiguobacterium	1	NA	TRUE	NA	NA	NA
+5c4507014e5199873252565ae944c7ae	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Lachnospiraceae; g__Stomatobaculum; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+5c5a8426c8ec6e863d0920a11700834e	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+5c682061379a5aa53bf93e19bfad00c7	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	5	TRUE	TRUE	TRUE	TRUE	TRUE
+5cc1255187f426d0a078f94ad8138a15	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	2	TRUE	NA	NA	NA	TRUE
+5d4962c0c9304bae438f41d96fdeccf6	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Actinomycetales; f__Actinomycetaceae; g__Actinomyces	4	NA	TRUE	TRUE	TRUE	TRUE
+5d676a71f489359464ffa51331ae9a07	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Corynebacteriaceae; g__Corynebacterium 1	4	NA	TRUE	TRUE	TRUE	TRUE
+60412103c3bd27beba9aec97b50833f8	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	2	TRUE	NA	NA	NA	TRUE
+6042c7d55ac413e3d6ca8af96f95dc86	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	4	TRUE	NA	TRUE	TRUE	TRUE
+606b973c4566b2ec9145f56cd3aeb550	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Family XII; g__Exiguobacterium	1	NA	TRUE	NA	NA	NA
+6134cf31d31f3791cb341d86b43de9dd	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Chitinophagales; f__Chitinophagaceae; g__Vibrionimonas; s__uncultured bacterium	1	NA	NA	NA	TRUE	NA
+638589f45f2d89ffa6963d48a197d690	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	1	NA	NA	TRUE	NA	NA
+6473ac9deebf1e9273493f2a3bf6ad7a	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiaceae; g__Ahrensia	1	NA	NA	TRUE	NA	NA
+649e633bcb093581dc5995900d356ef0	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiaceae; g__Allorhizobium-Neorhizobium-Pararhizobium-Rhizobium	3	TRUE	NA	TRUE	NA	TRUE
+65d5c0c97348500e3666eace04820288	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Methylobacterium	3	NA	NA	TRUE	TRUE	TRUE
+660b3b96a685f1a7bee76c01194c9722	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Stappiaceae; g__Stappia	1	NA	NA	TRUE	NA	NA
+660da753f7e1d26cd59291fdfa2005a3	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Staphylococcaceae; g__Staphylococcus	2	NA	NA	NA	TRUE	TRUE
+66816f734a1012cd5961bcfe3cc07dad	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Rhodanobacteraceae; g__Rhodanobacter	4	NA	TRUE	TRUE	TRUE	TRUE
+66a832b52909af62c270c31a63d535cf	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+66b5d248403e3ceb483fe4faeff2ae41	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	1	NA	TRUE	NA	NA	NA
+678a2c2a2e3db5cb453fcda6024a3bff	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Pelomonas	3	NA	NA	TRUE	TRUE	TRUE
+680721bfb257d0b09fcb7f220da74eaa	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	2	TRUE	NA	NA	NA	TRUE
+684b9f85326a1d61a18ad0933080191e	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiaceae; g__Nitratireductor	1	NA	NA	TRUE	NA	NA
+688fc0c86aee1e711548246f862ef636	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Serratia	1	NA	NA	NA	NA	TRUE
+68cb606888ca56625eb8d217208907b4	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+69126ffb38bd52100a9af7a9120dfe84	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Domibacillus	1	NA	NA	NA	TRUE	NA
+6958ca916e2bd8288a4296a512071cb6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas; s__Pseudomonas psychrophila	2	TRUE	NA	NA	NA	TRUE
+69af600e92e633ed3807ebeaf5043b54	k__Bacteria; p__Firmicutes; c__Erysipelotrichia; o__Erysipelotrichales; f__Erysipelotrichaceae; g__Erysipelotrichaceae UCG-004	2	TRUE	NA	NA	NA	TRUE
+6a54e5c6d0f196775f0577b48ade9674	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Pseudarthrobacter	1	NA	TRUE	NA	NA	NA
+6b70a2c54eba3b0206ba7879be20622a	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	2	TRUE	NA	NA	NA	TRUE
+6b79c8bd3e2de7706c3e103a4c7d5761	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Planococcus	1	NA	TRUE	NA	NA	NA
+6ba8d3c3a7daadc0677a93f3bc8027e4	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Massilia	1	NA	TRUE	NA	NA	NA
+6bb1d10d23fbdf5dc45667f771d3ef36	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Vibrionales; f__Vibrionaceae; g__Vibrio	3	TRUE	NA	TRUE	NA	TRUE
+6c48ba572329acb005efb3d787c1c9c7	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Gammaproteobacteria Incertae Sedis; f__Unknown Family; g__Acidibacter	2	NA	NA	TRUE	TRUE	NA
+6cfdb516c9bac7224eb8275e64fb3367	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Fusobacteriaceae; g__Fusobacterium	3	TRUE	NA	TRUE	NA	TRUE
+6d55b01c184011cdaa9caf4b23932c24	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	1	NA	TRUE	NA	NA	NA
+6d8c14bcbc4976ab8cf590ebf1f7fd61	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Porphyromonadaceae; g__Porphyromonas	2	TRUE	NA	NA	NA	TRUE
+6ee0e1ada9af85080f2549834da5dc0f	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Bacteroidaceae; g__Bacteroides; s__Bacteroides neonati	4	NA	TRUE	TRUE	TRUE	TRUE
+6fd085dbcfe34b48d83558a688b6ad78	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae; g__Microbacterium	4	TRUE	NA	TRUE	TRUE	TRUE
+6fd88b3a7ab6ddd4619f5d8e2e430226	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	4	NA	TRUE	TRUE	TRUE	TRUE
+702231c4f27d71c5854a85dc6b1a0d44	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	5	TRUE	TRUE	TRUE	TRUE	TRUE
+703586b90da70f5a4e90eaeef012cc71	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Vibrionales; f__Vibrionaceae; g__Vibrio; s__Vibrio metschnikovii	4	NA	TRUE	TRUE	TRUE	TRUE
+7181ede19f55d2ea3cecafae82b086c4	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Aerococcaceae; g__Abiotrophia; s__uncultured bacterium	2	TRUE	NA	NA	NA	TRUE
+71dd687823e61db318a5694c9bece95a	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Dietziaceae; g__Dietzia	1	NA	NA	NA	NA	TRUE
+720afa7998989816361dd8e0971fe603	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Massilia	4	NA	TRUE	TRUE	TRUE	TRUE
+7276a3deb2bb40d95f08a20c1a620018	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Prevotellaceae; g__Prevotella 2	4	NA	TRUE	TRUE	TRUE	TRUE
+72fa72ff98d6b9193d16eed43251f545	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Neisseriaceae; g__Neisseria; s__Neisseria sp. oral clone AP067	4	NA	TRUE	TRUE	TRUE	TRUE
+73633b093204b9ac06ae586e5dfceb87	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+73d698eff19d5f5f3adbc166e7dc47de	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	2	NA	NA	TRUE	TRUE	NA
+7417aec9db98165564b1a7b835c19260	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Serratia	3	NA	NA	TRUE	TRUE	TRUE
+74352041184d1caca500fb087015a50f	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+747336d9e0c33ea92a68c38b952cf05c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Aggregatibacter; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+767b51fb700f602080ab2afec380a4b0	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Xanthobacteraceae	3	TRUE	NA	TRUE	NA	TRUE
+77a3310d219dcfa6e125c2d7d7aff01b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Xanthomonadaceae; g__Luteimonas	1	NA	NA	TRUE	NA	NA
+77c4d198a4623c368faba0ae4c3be057	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Lachnospiraceae; g__Johnsonella	4	NA	TRUE	TRUE	TRUE	TRUE
+786fd065764edcb82e17df03f832f772	k__Bacteria; p__Epsilonbacteraeota; c__Campylobacteria; o__Campylobacterales; f__Arcobacteraceae; g__Arcobacter; s__Arcobacter marinus	4	TRUE	NA	TRUE	TRUE	TRUE
+78fc7c5b2367415639be7fa950dbcaee	k__Bacteria; p__Epsilonbacteraeota; c__Campylobacteria; o__Campylobacterales; f__Campylobacteraceae; g__Campylobacter; s__Campylobacter rectus	4	NA	TRUE	TRUE	TRUE	TRUE
+79653c0f2f5bf5a31b5b7d501f14917d	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	1	NA	TRUE	NA	NA	NA
+7985e817dd29a7929f4e6158aad0ab84	k__Bacteria; p__Patescibacteria; c__Saccharimonadia; o__Saccharimonadales; f__Saccharimonadaceae	2	TRUE	NA	NA	NA	TRUE
+79bc1a6d4155d0a9dad062676588c752	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Xanthomonadaceae	4	NA	TRUE	TRUE	TRUE	TRUE
+7a0e7e3c3a57de2e32985559df6d0ef6	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae; g__Microbacterium	4	TRUE	NA	TRUE	TRUE	TRUE
+7a6ddd728a5fbe512a85e1b47e54c758	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Domibacillus	4	TRUE	NA	TRUE	TRUE	TRUE
+7afee5b9d3525e9b6a2d41c3a72513c3	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	4	NA	TRUE	TRUE	TRUE	TRUE
+7bbd1880e902b547e91384950bd65671	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Leptotrichiaceae; g__Leptotrichia; s__uncultured bacterium	2	TRUE	NA	NA	NA	TRUE
+7bd3fb539d87e9d4728b83dcf64c1d2c	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Chitinophagales; f__Chitinophagaceae; g__Sediminibacterium	3	NA	NA	TRUE	TRUE	TRUE
+7ddffefc11d9f6e2253fffe98a5e4a68	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Lactobacillaceae; g__Lactobacillus	4	NA	TRUE	TRUE	TRUE	TRUE
+7e50fa572c2f42561c6266052de665da	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	2	TRUE	NA	NA	NA	TRUE
+7e71fc85f1b17f1eac85026dca9d522b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Rhodanobacteraceae; g__Rhodanobacter	5	TRUE	TRUE	TRUE	TRUE	TRUE
+7e7902e12c0cb97e09886f26ea971552	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+7e867e48640f19bbbcb3957a22aeb10d	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Rothia	2	TRUE	NA	NA	NA	TRUE
+7faabd3af6c034f75fc718b3dd4e444a	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Actinomycetales; f__Actinomycetaceae; g__Actinomyces; s__Actinomyces marimammalium	5	TRUE	TRUE	TRUE	TRUE	TRUE
+8085195c26203bf6a8105dfe2df1175f	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Clostridiaceae 1; g__Proteiniclasticum	5	TRUE	TRUE	TRUE	TRUE	TRUE
+80bbcc2587ca39df9e6830dcb58c1daa	k__Bacteria; p__Proteobacteria; c__Deltaproteobacteria; o__Bdellovibrionales; f__Bdellovibrionaceae; g__Bdellovibrio; s__Bdellovibrio bacteriovorus	2	TRUE	NA	NA	NA	TRUE
+813032a088f8d18a16653318177bc298	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Elizabethkingia	1	NA	NA	TRUE	NA	NA
+81d3d50b862dec761fd4e53fa91c59e9	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	2	TRUE	NA	NA	NA	TRUE
+82128fc983fc6404d79e7e00f5c2b92a	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+829862e5e1d1db1d92ba9c175e0dc411	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Clostridiaceae 1; g__Clostridium sensu stricto 5	4	NA	TRUE	TRUE	TRUE	TRUE
+82a5d08c0fe02519e2d76f27f3365c28	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Leptotrichiaceae; g__Leptotrichia	4	NA	TRUE	TRUE	TRUE	TRUE
+848b5fc3f3189a702a03117076e70a25	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Chryseobacterium	3	TRUE	NA	TRUE	NA	TRUE
+848fa2d3f78e7247d5f05706bd7f7cb5	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+84c8eb738dd4211d1f0c25f25524fa9c	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	2	NA	NA	TRUE	TRUE	NA
+851be69c18305bb0306b96bfdb85df40	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Methylobacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+8541c13b40d574ef1a28be4d8914aaa8	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Testudinibacter; s__Testudinibacter aquarius	2	TRUE	NA	NA	NA	TRUE
+86858091f3e877db696345ea95bdaa54	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Halomonadaceae; g__Halomonas	2	TRUE	NA	NA	NA	TRUE
+875c3cc2d4959bb96dcd9eda18431e9e	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+8786190db887aa4201521642ddbb21e7	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Peptostreptococcaceae; g__Acetoanaerobium; s__uncultured bacterium	5	TRUE	TRUE	TRUE	TRUE	TRUE
+87a76e55f5c9ce67d29c7cf01172721e	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Azospirillales; f__Azospirillaceae; g__Skermanella	2	TRUE	NA	NA	NA	TRUE
+885fe6914149d48268d43d25692c82d5	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Alteromonadales; f__Pseudoalteromonadaceae; g__Pseudoalteromonas	4	TRUE	NA	TRUE	TRUE	TRUE
+89f9a369ef743019249d22929a340a0b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+8a0f2914c0c9c933ba78b09edbc59d9c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Psychrobacter	2	TRUE	NA	NA	NA	TRUE
+8a6adebd35184f547860f7f8036d30b4	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Prevotellaceae; g__Prevotella 2; s__Prevotella sp. oral taxon 781	4	NA	TRUE	TRUE	TRUE	TRUE
+8b203daed04487e9df23913335b3613c	k__Bacteria; p__Spirochaetes; c__Spirochaetia; o__Spirochaetales; f__Spirochaetaceae; g__uncultured; s__bioreactor sludge metagenome	4	NA	TRUE	TRUE	TRUE	TRUE
+8b35137c2af39f09f4d3ab3bf7127cde	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+8b85f0c74d5eef4cd56a680600b256a3	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Aerococcaceae; g__Abiotrophia; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+8bc324a1555efc88a73c8285b61e82b6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+8c0929c7685872f8ebff0bdc2a740061	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Domibacillus	1	NA	NA	NA	TRUE	NA
+8ca5cb111b238e3d37f807d9770db67d	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Enhydrobacter	2	TRUE	NA	NA	NA	TRUE
+8d8707d60de579073b681e6fdc3d4527	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	2	TRUE	NA	NA	NA	TRUE
+8d98fd569aeca736e1aab1213450aeeb	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Acetobacterales; f__Acetobacteraceae; g__Craurococcus; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+8da8b125d5a3490101766d418da380ae	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+8e5d52e17c70043427ca39ea7f8e50dd	k__Bacteria; p__Epsilonbacteraeota; c__Campylobacteria; o__Campylobacterales; f__Arcobacteraceae; g__Arcobacter; s__Arcobacter butzleri	4	TRUE	NA	TRUE	TRUE	TRUE
+8e8708969726ccaf1f3a0b09f05fcfae	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Staphylococcaceae; g__Jeotgalicoccus	2	TRUE	NA	NA	NA	TRUE
+8f1459b71c1a602adc18c2f9c6784d24	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae; g__Microbacterium	3	NA	TRUE	TRUE	TRUE	NA
+8f6d59d1b97311ca4ce3f2c57dfafb2f	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Streptomycetales; f__Streptomycetaceae; g__Streptomyces	4	NA	TRUE	TRUE	TRUE	TRUE
+901a9cf27134313f3a246923f4117e45	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	1	NA	TRUE	NA	NA	NA
+905a2db13714059ef26b015f0669fa47	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Methylobacterium	4	TRUE	NA	TRUE	TRUE	TRUE
+91a172448367fa439b34524d19993b3d	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Propionibacteriales; f__Nocardioidaceae; g__Nocardioides	1	NA	TRUE	NA	NA	NA
+91b699ba9dfbeab5167b77fdca36d378	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+91c5df44feac42cd3056e8939078e11c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Xanthomonadaceae; g__Stenotrophomonas	2	TRUE	NA	NA	NA	TRUE
+91ffdbd623a55b3276377d389f0ba82d	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	1	NA	NA	NA	TRUE	NA
+93d413e965590602b8e1dabac73624d6	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae	1	NA	TRUE	NA	NA	NA
+93dcfb6074186af6d5bf68cfce5c6095	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+945e75b146215d840b1f64b8978f7000	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Corynebacteriaceae; g__Corynebacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+946df20db41bd2f93036b4cc1476305f	k__Bacteria; p__Firmicutes; c__Negativicutes; o__Selenomonadales; f__Veillonellaceae; g__Selenomonas 3	4	NA	TRUE	TRUE	TRUE	TRUE
+947b5b2877eb812baedaeb1b7df716e0	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__1174-901-12	4	NA	TRUE	TRUE	TRUE	TRUE
+94fd94b7ca4b92caf0e55dbeedb87579	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	2	NA	NA	NA	TRUE	TRUE
+9503b33816e1c1596b342c3585e3ac5f	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+955696ee61c1391261ebff7aba58b987	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Chryseobacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+955dbf878e236cb3d1f16764f618cfb3	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Flavobacteriaceae; g__Flavobacterium; s__Flavobacterium resistens	4	NA	TRUE	TRUE	TRUE	TRUE
+9633817ccce7745e695b18594c1652ed	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+96a4dc45c8a2834f14ed3881df10f7f3	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+96f05dc69bccfc758220b02413972ad0	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	2	TRUE	NA	NA	NA	TRUE
+97131db23d8ea396f287d3ecce563e09	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Anoxybacillus	3	TRUE	NA	TRUE	NA	TRUE
+97298296ce7d19e8fa7043129e1f6e64	k__Bacteria; p__Cyanobacteria; c__Oxyphotobacteria; o__Chloroplast	2	TRUE	NA	NA	NA	TRUE
+97323abe776c5cf710aff742c7462b17	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Leptotrichiaceae; g__Hypnocyclicus; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+996ac9bf337f5914e24ec77d7c8209c9	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+998006c5ad6c7c6de358d8586bd56f38	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+99fedd696c52346236903c5afd6e0cbd	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Vibrionales; f__Vibrionaceae; g__Salinivibrio	5	TRUE	TRUE	TRUE	TRUE	TRUE
+9a6805b00b9dae9ae955129811f15b7d	k__Bacteria; p__Firmicutes; c__Negativicutes; o__Selenomonadales; f__Veillonellaceae; g__Veillonella	2	TRUE	NA	NA	NA	TRUE
+9af0778156a9fb0fc982ead9282f357b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	4	NA	TRUE	TRUE	TRUE	TRUE
+9b78971eda9dd28a2a7a86e631f82dd4	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Planococcus	1	NA	TRUE	NA	NA	NA
+9bfe5bdbb659b75ff2ed836d6d9ccd2a	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+9c85d1ef0063425ae18a72169753f151	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+9d1f21ddab0fa19d42e93775a0d0434c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	1	NA	TRUE	NA	NA	NA
+9db1cf3a631f842e93717b4ce9ac8291	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Sphingobacteriales; f__Sphingobacteriaceae; g__Pedobacter; s__Pedobacter sp. oral clone AV100	2	NA	TRUE	NA	TRUE	NA
+9e0dc0871b1f47c914430bb3b1937059	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas; s__Pseudomonas psychrophila	4	NA	TRUE	TRUE	TRUE	TRUE
+9ea80a8359faee31c05adb6038796af6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Comamonas; s__Comamonas aquatica	1	NA	TRUE	NA	NA	NA
+9f7c560dbd7c1c50be6f2d7390b3d49c	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiaceae; g__Allorhizobium-Neorhizobium-Pararhizobium-Rhizobium	2	TRUE	NA	NA	NA	TRUE
+9fa7f267406c76f4db2021a569a494e8	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Propionibacteriales; f__Nocardioidaceae; g__Marmoricola	4	NA	TRUE	TRUE	TRUE	TRUE
+a01380594c79522c5a756004bfb0feab	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+a0bf6f16013af3ba35cc54a3de23d6a3	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales	3	NA	NA	TRUE	TRUE	TRUE
+a244ef768d4fcabc99d33e0d6a923c68	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Planomicrobium	1	NA	TRUE	NA	NA	NA
+a2b31dbc750cc5b626e60bbaeac78c3d	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+a2e78ed78691267a8a67ad9db3c48441	k__Bacteria; p__Cyanobacteria; c__Oxyphotobacteria; o__Chloroplast	2	TRUE	NA	NA	NA	TRUE
+a2fc96969a3f4d4ff732a7f587a22bb0	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+a36e2151685229267be6d9122c6da448	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Dermacoccaceae; g__Kytococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+a45d0bd7bb7a49dd2e51ba243a9431a7	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Sphaerotilus	2	TRUE	NA	NA	NA	TRUE
+a4cb076d6a94cf2013068f43a67cc1be	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	2	NA	TRUE	NA	TRUE	NA
+a6123b2b049bde865ac05c3d0f93f910	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Escherichia-Shigella	4	TRUE	NA	TRUE	TRUE	TRUE
+a6dda6ac5583ad61925d182229e94e86	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+a70d5060cef4f258e1aa6c10a9eb61b9	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Corynebacteriaceae; g__Corynebacterium 1	4	NA	TRUE	TRUE	TRUE	TRUE
+a731bebcf8c15549c5704085737d1eb2	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Leptotrichiaceae; g__Leptotrichia; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+a773879b719a291e13eb216ce2b96325	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Family XVI; g__Carboxydocella; s__Carboxydocella sp. 930	2	TRUE	NA	NA	NA	TRUE
+a7aeba17e36f61d7928b173a9f11781e	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Neomicrococcus	1	NA	TRUE	NA	NA	NA
+a83e0fb9ad94d685951544db95fe554f	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Caulobacterales; f__Caulobacteraceae; g__Brevundimonas	2	TRUE	NA	NA	NA	TRUE
+a8e4379ba1c383f729745d9cf1892dfa	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Porphyromonadaceae; g__Porphyromonas; s__Porphyromonas pogonae	4	NA	TRUE	TRUE	TRUE	TRUE
+a9a19b79c705af293c78df5d2e386adb	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Methylobacterium; s__Methylobacterium sp. 92d	3	TRUE	NA	TRUE	NA	TRUE
+a9ac33c6019dd09711e80e1ae37a9cd9	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Rothia	3	TRUE	NA	TRUE	NA	TRUE
+a9e1e7873b6cc151f178aecb73af11c5	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingobium	1	NA	NA	TRUE	NA	NA
+aaa4bdcba2e843901c3d1ccb227b12fd	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Planomicrobium	1	NA	TRUE	NA	NA	NA
+abd2057fc57f936212ec48212091aaf6	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus	3	TRUE	NA	NA	TRUE	TRUE
+abe1e14e05217042869d7afb928a0756	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Anoxybacillus	2	TRUE	NA	NA	NA	TRUE
+abec5e23d88d950019ac16224d7c02e1	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Comamonas; s__Ottowia sp. oral taxon 894	4	NA	TRUE	TRUE	TRUE	TRUE
+ac6c99b4a5b80eefb83bc24ca013df06	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+ac8cbcbc6a1d05d52e450dc7d7b0c916	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Elizabethkingia	2	TRUE	NA	NA	NA	TRUE
+acdded956352ed3fc95578cdba8cda58	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Aeromonadales; f__Aeromonadaceae; g__Aeromonas	4	NA	TRUE	TRUE	TRUE	TRUE
+ad4f34e8f15c2c5a3bb3966638bf296e	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+ae087e5ffffc8465c716e516aa04643c	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rickettsiales; f__Mitochondria	2	TRUE	NA	NA	NA	TRUE
+aec7690797d5cb2ca69537035cdb7c3d	k__Bacteria; p__Proteobacteria; c__Deltaproteobacteria; o__Oligoflexales; f__0319-6G20; g__uncultured Roseobacter sp.; s__uncultured Roseobacter sp.	3	NA	NA	TRUE	TRUE	TRUE
+aed6c8707dbc58f36530f257d7a6345a	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Chryseobacterium	4	TRUE	NA	TRUE	TRUE	TRUE
+affe2827cf7f60014f313bf9d07980b6	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Caulobacterales; f__Caulobacteraceae; g__uncultured	2	NA	NA	TRUE	TRUE	NA
+b006152434a07440eda244bf559f84c5	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+b08ac3ad74501889f2dd41b7892c33a3	k__Bacteria ; f__NA; g__NA; s__NA	4	NA	TRUE	TRUE	TRUE	TRUE
+b0ed88b48c1ae4a4cd06e8ce219d9a21	k__Bacteria; p__Cyanobacteria; c__Oxyphotobacteria; o__Chloroplast	4	NA	TRUE	TRUE	TRUE	TRUE
+b239ef25be264072e0012e360f4ad6d4	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Streptomycetales; f__Streptomycetaceae; g__Streptomyces	4	NA	TRUE	TRUE	TRUE	TRUE
+b2922a07263b8f9911261de3fe132fd1	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Nocardiaceae; g__Rhodococcus	3	NA	NA	TRUE	TRUE	TRUE
+b2b5b3e06776faf31cabeb5a4c513846	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiaceae	4	TRUE	NA	TRUE	TRUE	TRUE
+b2ecb484220e3675ddab2dae3479e4ed	k__Bacteria; p__Chloroflexi; c__Chloroflexia; o__Chloroflexales; f__Roseiflexaceae; g__uncultured; s__uncultured Chloroflexaceae bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+b3144b41ec92c62085cf02e9c558faeb	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Family XII; g__Exiguobacterium	1	NA	TRUE	NA	NA	NA
+b408d66f085a2f6da74a97d758d23745	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Peptococcaceae; g__Desulfurispora; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+b41f77b01820227190d95fd57174ce23	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Massilia	1	NA	TRUE	NA	NA	NA
+b42ce8f69713f2e9adeddbdbb44a4443	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Devosiaceae; g__Pelagibacterium; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+b462fb3561dd90edeb79102927c0cb00	k__Bacteria; p__Firmicutes; c__Negativicutes; o__Selenomonadales; f__Veillonellaceae; g__uncultured; s__Propionispora sp.	4	NA	TRUE	TRUE	TRUE	TRUE
+b49bd6bd4730031b62bc4f85c23f5bfb	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Methylobacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+b57ac7a3048b10317a2e4a712311e2f3	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Family XI; g__Gemella	4	NA	TRUE	TRUE	TRUE	TRUE
+b58db6bb648f7df4cccdca70dab0b9e3	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiaceae; g__Shinella	4	NA	TRUE	TRUE	TRUE	TRUE
+b6300e4d897965a2853875a8e8e0fba2	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	2	NA	NA	NA	TRUE	TRUE
+b63424489067371360330a2881ed4a8c	k__Bacteria; p__Verrucomicrobia; c__Verrucomicrobiae; o__uncultured	4	NA	TRUE	TRUE	TRUE	TRUE
+b6d40f187e1d2ec80df2a0843991c51c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Massilia	1	NA	TRUE	NA	NA	NA
+b7eef79cf0fd0c2f34dd5148dacb3219	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Actinomycetales; f__Actinomycetaceae; g__Actinomyces	2	TRUE	NA	NA	NA	TRUE
+b8367f67cced7ae96cfe7c0f2c9f371b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Aquabacterium	4	TRUE	NA	TRUE	TRUE	TRUE
+b8bb6692e82c54334e6583cb6c0c0b79	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Corynebacteriaceae	4	NA	TRUE	TRUE	TRUE	TRUE
+b92c1271159e190b4a308ebbc4fb34bd	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Sanguibacteraceae; g__Sanguibacter	2	TRUE	NA	NA	NA	TRUE
+b9481d98d94b4ca59fa3f3445b06b826	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	1	NA	NA	NA	TRUE	NA
+b95059cc998ea37f090dc8587cc3a3d7	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Dysgonomonadaceae	2	NA	NA	TRUE	TRUE	NA
+ba15ab44c378d3c5352107560a150b23	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+baee02b63b5f6c187eba87067363f525	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Roseiarcus; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+bb5416031962f00ce680e39e7e8620ec	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Vibrionales; f__Vibrionaceae; g__Vibrio	2	TRUE	NA	NA	NA	TRUE
+bc42d3c1e2a74db7b12e4db75e8dd83b	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Leuconostocaceae; g__Leuconostoc	2	TRUE	NA	NA	NA	TRUE
+bc9c102fef191b0c2d71c522bee76c6e	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Corynebacteriaceae; g__Corynebacterium; s__Corynebacterium durum	4	NA	TRUE	TRUE	TRUE	TRUE
+bcca311a42a84384cd9a69663f18ff7c	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	2	TRUE	NA	NA	NA	TRUE
+bcf11de152f3568c0059865c0c629acb	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Corynebacteriales; f__Corynebacteriaceae; g__Corynebacterium 1; s__Corynebacterium pseudodiphtheriticum	2	TRUE	NA	NA	NA	TRUE
+bf01a7b3360ff4f6eb4db38c8aa77499	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	NA	TRUE	TRUE	TRUE
+bf3a9d555fb25d3abb0cdf986119fcca	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+bf7dbe3daf223f7bfd87189178d4c6b2	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Aggregatibacter; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+bfb784a3aa1e6618faeae17fe6208e31	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Family XI; g__Gemella	2	TRUE	NA	NA	NA	TRUE
+c0195872e6b955c22242cafa0cd3445d	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Chryseomicrobium	1	NA	TRUE	NA	NA	NA
+c0861277cd68c211e764abd763559ba2	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+c0ef5010b16080e80ddb45a0b5e6ea80	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Enterococcaceae; g__Enterococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+c1354e1c9aadd09bd8b93a16b3984d6f	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Staphylococcaceae; g__Staphylococcus	2	TRUE	NA	NA	NA	TRUE
+c19d393f03987f959b403b121e442832	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Family XI; g__Gemella	2	TRUE	NA	NA	NA	TRUE
+c21ef21f9de870ce600c79b229edc00b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	1	NA	NA	TRUE	NA	NA
+c2f93aa64bc2ec3119fb8f06a5ae0260	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Porphyromonadaceae; g__Porphyromonas	4	NA	TRUE	TRUE	TRUE	TRUE
+c2fb4561a9f9c06cb06b8a42326dbfaa	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Flavobacteriaceae; g__Capnocytophaga; s__Capnocytophaga gingivalis	4	NA	TRUE	TRUE	TRUE	TRUE
+c35a0282fbe903b45249cf009f314535	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Testudinibacter; s__Testudinibacter aquarius	3	TRUE	NA	TRUE	NA	TRUE
+c4509dadb04bf41eccc6a3c84ee824d7	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae	1	NA	TRUE	NA	NA	NA
+c4963691c23515b90d0dc1bc2b641906	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Flavobacteriaceae; g__Capnocytophaga	4	NA	TRUE	TRUE	TRUE	TRUE
+c54416b54711694a1bbe5e414a703ead	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Achromobacter	1	NA	NA	NA	NA	TRUE
+c5704619432b02c4afb396d6cceb8f84	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Geobacillus	4	NA	TRUE	TRUE	TRUE	TRUE
+c62879380264b8d1c3d1c50dcf6dfcfe	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+c6459ad769d5a38d5c73b521aa9a2cd8	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	4	TRUE	NA	TRUE	TRUE	TRUE
+c6db1658335e89bb2c641da023e9e11e	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+c6e6b5eaa27bdd2d32587a06675c6165	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Staphylococcaceae; g__Staphylococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+c71c893fa1e627c99bcdc3cc30e91115	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+c74550ba4934ac322a13fc2284e07628	k__Bacteria; p__Proteobacteria; c__Deltaproteobacteria; o__Bdellovibrionales; f__Bdellovibrionaceae; g__Bdellovibrio	1	NA	TRUE	NA	NA	NA
+c74c777759322ec984a0aeb0fe496f42	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Delftia	2	TRUE	NA	NA	NA	TRUE
+c76c9855c5b4a6b0f243dbf160fa3377	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+c78e3cf552fb623720a3ff01c847de8b	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Paenibacillaceae; g__Paenibacillus	2	TRUE	NA	NA	NA	TRUE
+c7ed6dd0bb6d4c733aa61d800de9ceba	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Escherichia-Shigella	3	NA	TRUE	TRUE	TRUE	NA
+c81334dedc19ff63f99940fad5a3a759	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Actinomycetales; f__Actinomycetaceae; g__Actinomyces	4	NA	TRUE	TRUE	TRUE	TRUE
+c8169b731ead5c3fd5a209fa35a2a316	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Psychrobacter	2	TRUE	NA	NA	NA	TRUE
+c8479af9c30683be90fcbeb1e06d40bc	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae	1	NA	TRUE	NA	NA	NA
+c9ceaf3ab638020c10eebc01d0c70838	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	2	NA	NA	TRUE	TRUE	NA
+ca04191ef46325c9b76d12f0610e5a38	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Novosphingobium	3	TRUE	NA	TRUE	NA	TRUE
+ca5a625b07298a2c7b5e1edd54618c82	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Actinomycetales; f__Actinomycetaceae; g__Actinomyces	4	NA	TRUE	TRUE	TRUE	TRUE
+ca6e0ccd0feec6bf5b7277aa0d4a69fc	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	4	NA	TRUE	TRUE	TRUE	TRUE
+cbedbdca20c273e73dfc1330faea0f23	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Propionibacteriales; f__Propionibacteriaceae; g__Cutibacterium	2	TRUE	NA	NA	NA	TRUE
+cd0f6fe66a7ca2d8c5bf4bd4f0086dbf	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Neisseriaceae; g__Uruburuella	4	NA	TRUE	TRUE	TRUE	TRUE
+cd4ed636b10517e91c8ee7757cf7741b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Cardiobacteriales; f__Cardiobacteriaceae; g__Cardiobacterium; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+cd90f6dbdae4bcf990bf94a7cd93ee11	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+cef98d84b1eac90d42cc22c3cfc269c0	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Weeksellaceae; g__Bergeyella	3	TRUE	NA	TRUE	NA	TRUE
+cfa5add34f111e01b47dfe1a2988ab62	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Rhizobiales Incertae Sedis; g__Phreatobacter	3	TRUE	NA	NA	TRUE	TRUE
+cfae9ea193d742496548e8f8b01774e4	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	5	TRUE	TRUE	TRUE	TRUE	TRUE
+d02b75f051dc712628d2e9417f532fd1	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	2	TRUE	NA	NA	NA	TRUE
+d02b78193af1bbfce2bb603629d1a40f	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Massilia	1	NA	TRUE	NA	NA	NA
+d042520c1698a6dad76e1262fee65ed7	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Vibrionales; f__Vibrionaceae; g__Vibrio	2	TRUE	NA	NA	NA	TRUE
+d0f889d2f74c8694a6e3340624cd5bbb	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhodospirillales; f__Thalassospiraceae; g__Thalassospira	2	TRUE	NA	NA	NA	TRUE
+d2e309404037aef554c9e8633126da75	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	TRUE	NA	TRUE	NA	TRUE
+d37423be8cbad2dd5acc9903ae4853cd	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Nitrosomonadaceae; g__Ellin6067	4	NA	TRUE	TRUE	TRUE	TRUE
+d39d29a2c3876fcd76cfdd94c145940a	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	1	NA	TRUE	NA	NA	NA
+d3f94c06061d83c019d8ecd71b836dbc	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	1	NA	TRUE	NA	NA	NA
+d476d141161a669df5cd842645bddee9	k__Bacteria; p__Deinococcus-Thermus; c__Deinococci; o__Deinococcales; f__Deinococcaceae; g__Deinococcus	1	NA	TRUE	NA	NA	NA
+d51901dda46f2f5548c7184b34b515ac	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Caulobacterales; f__Caulobacteraceae; g__uncultured	4	NA	TRUE	TRUE	TRUE	TRUE
+d5203718d41468f3693d37d531717108	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+d56d72f666a054649a64d2c68d4bb608	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus	1	NA	NA	NA	NA	TRUE
+d5aa51bf8aed7b611467aee37d7dd11d	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Ralstonia	3	TRUE	NA	TRUE	NA	TRUE
+d68857df1765354e32e14c79c5a6838a	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Neisseriaceae; g__Uruburuella	5	TRUE	TRUE	TRUE	TRUE	TRUE
+d81413ab87baca4f0fa87c43b2c1d167	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	1	NA	TRUE	NA	NA	NA
+d8b07427886edfbe48408d2bc2683d00	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Massilia	1	NA	TRUE	NA	NA	NA
+d8d13d80433bb328e2536f55478f9bb2	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Chryseomicrobium	1	NA	TRUE	NA	NA	NA
+d8deec0cdce0a54ce468aa035695f5f0	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Micrococcaceae; g__Rothia	2	TRUE	NA	NA	NA	TRUE
+d91bc2a77f92d434e3476c8b0224e000	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Peptococcaceae; g__Pelotomaculum	2	TRUE	NA	NA	NA	TRUE
+d9de56451e8d1c626c2a6b9c3c9747e5	k__Bacteria; p__Deinococcus-Thermus; c__Deinococci; o__Thermales; f__Thermaceae; g__Meiothermus	3	TRUE	NA	TRUE	NA	TRUE
+da3960b34ee549f7e0461c904df28102	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Family XI; g__Tissierella; s__uncultured bacterium	1	NA	NA	TRUE	NA	NA
+dac1873166ca35c0c9ff1230e8d4b7c8	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhodobacterales; f__Rhodobacteraceae	4	NA	TRUE	TRUE	TRUE	TRUE
+dae19db4ef497bb887f3dbd0e79c8154	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Family XII; g__Exiguobacterium	1	NA	TRUE	NA	NA	NA
+db4f1dbce6b22ef4f8a983ac834cc0fe	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Vibrionales; f__Vibrionaceae; g__Vibrio	4	NA	TRUE	TRUE	TRUE	TRUE
+dbb3a7de198bf14c2cd6b3e29842e44b	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Fusobacteriaceae; g__Fusobacterium	3	TRUE	NA	TRUE	NA	TRUE
+dbb459ab1ccad5764fef6eb80be74b15	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Rikenellaceae; g__uncultured; s__uncultured Clostridium sp.	2	TRUE	NA	NA	NA	TRUE
+dc25d28d2fa38b4e66a25461ece33fb8	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	2	TRUE	NA	NA	NA	TRUE
+dcbe59e3a90738dec2b6744c6977997b	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Methylobacterium	2	TRUE	NA	NA	NA	TRUE
+deb47f414b19dc0e84d8bbae5f578e56	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	2	TRUE	NA	NA	NA	TRUE
+dec496b4ea4f228e144df308b16abf0c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	1	NA	TRUE	NA	NA	NA
+def2bc8bbc624dfa7f110fd09c62b310	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Aeromonadales; f__Aeromonadaceae; g__Aeromonas	2	TRUE	NA	NA	NA	TRUE
+df68ce9a5eb216bc62ed276596045c28	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+dfc57b5c61bc02d64b808f3e0e0b7d66	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Halomonadaceae; g__Halomonas	5	TRUE	TRUE	TRUE	TRUE	TRUE
+dfc9d3677115fce5352e700e9b58345f	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	2	TRUE	NA	NA	NA	TRUE
+e036746939333a78ba93d42a5785323c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Neisseriaceae; g__Neisseria	4	NA	TRUE	TRUE	TRUE	TRUE
+e139e8d20f408fe67573ce7a9162feb1	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	1	NA	NA	TRUE	NA	NA
+e17b508f4b7e4c84ba333cbbb4801985	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	5	TRUE	TRUE	TRUE	TRUE	TRUE
+e1a1e8b782b86db83858b96531557533	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Leuconostocaceae; g__Weissella	2	TRUE	NA	NA	NA	TRUE
+e1b6d89e5ac7aca5d11a08952e96e84a	k__Bacteria; p__Proteobacteria; c__Deltaproteobacteria; o__Myxococcales; f__BIrii41	4	NA	TRUE	TRUE	TRUE	TRUE
+e1daae706a8f26d45eac5dff39f4b7e5	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Xanthomonadaceae; g__Stenotrophomonas	2	TRUE	NA	NA	NA	TRUE
+e1f716b0b743a40678d5deec486efe04	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Porphyrobacter	1	NA	TRUE	NA	NA	NA
+e2983b7079eab4a8256ae730d9e58e9f	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	4	NA	TRUE	TRUE	TRUE	TRUE
+e2be4fc727acb96b063de2d025812fcd	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Leptotrichiaceae; g__Leptotrichia	2	TRUE	NA	NA	NA	TRUE
+e35dbef3e8021d466e9030ba4e236bfb	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+e374892c638e2a6a35bc4fcfb4a1b60a	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	1	NA	TRUE	NA	NA	NA
+e3888fa2b44d2d68d675533038ca96dd	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Serratia	4	NA	TRUE	TRUE	TRUE	TRUE
+e3eb2a733836a0e78e50698c1db19f05	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Family XI; g__Gottschalkia; s__[Eubacterium] angustum	5	TRUE	TRUE	TRUE	TRUE	TRUE
+e51221a18043b8600a584dfe5f8de321	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	2	TRUE	NA	NA	NA	TRUE
+e607cb4591a90c2c4e9b03daf926aa09	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Staphylococcaceae; g__Staphylococcus	4	NA	TRUE	TRUE	TRUE	TRUE
+e63698db46cac76b072a870c70cf06c1	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas; s__Sphingomonas panni	1	NA	NA	TRUE	NA	NA
+e6d65e639fb416bb40f60f59ea076b32	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Actinomycetales; f__Actinomycetaceae; g__Actinomyces	2	TRUE	NA	NA	NA	TRUE
+e75795ea4885ca7b587b80a9bc67f465	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Alteromonadales; f__Alteromonadaceae; g__Rheinheimera	1	NA	TRUE	NA	NA	NA
+e7b3dbcbf5b244e7691f025092ad3fd7	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Neisseriaceae; g__Neisseria; s__uncultured bacterium	3	TRUE	NA	TRUE	NA	TRUE
+e7eb6ac5fed37b8abda5364194525c96	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Achromobacter	2	TRUE	NA	NA	NA	TRUE
+e80c4070866db7af8b932f99682e3b1b	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	3	TRUE	NA	NA	TRUE	TRUE
+e9561f8de05053ae9e269f6570870067	k__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus	3	TRUE	NA	TRUE	NA	TRUE
+e96dd89c46f14dc552ce93c8af12f64a	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus; s__Bacillus horikoshii	1	NA	TRUE	NA	NA	NA
+ea1c4308bbeca3ee98fa3824e9b14a16	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+eb11a8e9bc8c81ee050193fdd4339d16	k__Bacteria; p__Fusobacteria; c__Fusobacteriia; o__Fusobacteriales; f__Leptotrichiaceae; g__Leptotrichia	2	TRUE	NA	NA	NA	TRUE
+ebeeb605aef5a4f08a7faca4981704bf	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	2	TRUE	NA	NA	NA	TRUE
+ec042d3e5d893be84b8c44bc835e0127	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Terribacillus	2	NA	NA	NA	TRUE	TRUE
+ec3f6a80f5c7f545e19c0988d96c6366	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	3	TRUE	NA	TRUE	NA	TRUE
+eda61f4fa239a94185d8870e29558d0c	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Serratia	2	NA	NA	NA	TRUE	TRUE
+edd9c790b6e2d65f388641dee81ca076	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Geobacillus	3	TRUE	NA	TRUE	NA	TRUE
+ee2c7cae9e5dccaab34e67635d02f590	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Psychrobacter	3	TRUE	NA	NA	TRUE	TRUE
+ee4dbce139f1743bc92fd5330b23dc8b	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Rhizobiales; f__Beijerinckiaceae; g__Methylobacterium	2	TRUE	NA	NA	NA	TRUE
+ef8cefa448072dcb8864edb2850e2c80	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Testudinibacter; s__Testudinibacter aquarius	3	NA	TRUE	TRUE	TRUE	NA
+efc303dcd189103a07283c8daea01000	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Xanthomonadales; f__Xanthomonadaceae; g__Xanthomonas	2	TRUE	NA	NA	NA	TRUE
+f01e4e9b3cecaaae48d7eba287819243	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	2	NA	NA	TRUE	TRUE	NA
+f032134b89a64be2cfc5cd9e29f51c7b	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	1	NA	TRUE	NA	NA	NA
+f0a01286aceb8cc2777186c0270561ab	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Prevotellaceae; g__Alloprevotella; s__uncultured Bacteroidetes bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+f0ccc8cfcdd227286a2e5fa9a0029070	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Enterobacter	1	NA	NA	NA	NA	TRUE
+f0e244704814ef3a9356bfe9b7dbc4ff	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Caldicoprobacteraceae; g__Caldicoprobacter	4	NA	TRUE	TRUE	TRUE	TRUE
+f0ee95bdb60f6c07b4f8a938549ff2e4	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	2	TRUE	NA	NA	NA	TRUE
+f1e6bb0e5a56143b936beef813a913ed	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Aggregatibacter; s__uncultured bacterium	4	NA	TRUE	TRUE	TRUE	TRUE
+f2087c451960de3e697a034c4a625f6b	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Flavobacteriales; f__Flavobacteriaceae; g__Capnocytophaga; s__Capnocytophaga granulosa	4	NA	TRUE	TRUE	TRUE	TRUE
+f216144b23ca0f0572080717c6d780ca	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	4	NA	TRUE	TRUE	TRUE	TRUE
+f2663982f15dc3ff5747e28cc4f05698	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Streptomycetales; f__Streptomycetaceae; g__Streptomyces	2	TRUE	NA	NA	NA	TRUE
+f2781c3967d3e59fb666577f677a99b6	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Bacteroidales; f__Porphyromonadaceae; g__Porphyromonas	4	NA	TRUE	TRUE	TRUE	TRUE
+f29d13547989c39e3562304f18f6f003	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Halomonadaceae; g__Halomonas	2	TRUE	NA	NA	NA	TRUE
+f3833dbe12a033d3e5dc08a4f8465280	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Moraxellaceae; g__Acinetobacter	1	NA	NA	NA	NA	TRUE
+f44f2e0650f542cf34600892c1741611	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus	3	TRUE	NA	NA	TRUE	TRUE
+f467477540feeb4019acd2e79012cd86	k__Bacteria; p__Actinobacteria; c__Actinobacteria; o__Micrococcales; f__Microbacteriaceae; g__Microbacterium	3	NA	TRUE	TRUE	TRUE	NA
+f56825fe9acb2432791abadb0f009c8d	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	TRUE	TRUE	TRUE	NA
+f5a399127a87e7016a5516bf60b350bc	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	3	NA	NA	TRUE	TRUE	TRUE
+f5c714ccc532470a07400a892ed41f3a	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	4	TRUE	NA	TRUE	TRUE	TRUE
+f5e69dbf05830b81f19f6441cf192b7d	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae	4	NA	TRUE	TRUE	TRUE	TRUE
+f6c0580d56d600461a35db4715096d17	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Oceanospirillales; f__Halomonadaceae; g__Halomonas	4	TRUE	NA	TRUE	TRUE	TRUE
+f863c771e4ac4576bd6631319feb3836	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+f88b7f4584c1c0e6d7f406818a0f1358	k__Bacteria; p__Patescibacteria; c__Saccharimonadia; o__Saccharimonadales; f__Saccharimonadaceae; g__candidate division TM7 single-cell isolate TM7a; s__candidate division TM7 single-cell isolate TM7a	4	NA	TRUE	TRUE	TRUE	TRUE
+f8ca3b08e4bce6b8174a62db2e1ee7b6	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacteriales; f__Enterobacteriaceae; g__Pantoea	3	NA	TRUE	TRUE	TRUE	NA
+f9519ca3103afff869fd5ade9a03d132	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Burkholderia-Caballeronia-Paraburkholderia	5	TRUE	TRUE	TRUE	TRUE	TRUE
+f994ba4c2118071feae0c3192c90bff5	k__Bacteria; p__Bacteroidetes; c__Bacteroidia; o__Chitinophagales; f__Chitinophagaceae; g__Sediminibacterium; s__uncultured soil bacterium	1	NA	NA	NA	TRUE	NA
+fa73e6debd3d164608b46fb5bac084e0	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pasteurellales; f__Pasteurellaceae; g__Aggregatibacter; s__uncultured bacterium	2	TRUE	NA	NA	NA	TRUE
+fab12347bea4a7676034dd1d39da39a1	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	2	TRUE	NA	NA	NA	TRUE
+faba1ebd363eb074413c0e309dd3d672	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Planococcus	1	NA	TRUE	NA	NA	NA
+fac15fb53e7808a2e1f79fe6b3af3128	k__Bacteria; p__Cyanobacteria; c__Oxyphotobacteria; o__Chloroplast	4	NA	TRUE	TRUE	TRUE	TRUE
+fb285c6361357cda17829941836359fb	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Staphylococcaceae; g__Staphylococcus	3	TRUE	NA	TRUE	NA	TRUE
+fc2d8c1ae5d310593c6996c55e415195	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Alteromonadales; f__Alteromonadaceae; g__Rheinheimera	1	NA	TRUE	NA	NA	NA
+fd86ad3f1ba3f55ce4f33590f7f48b44	k__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Peptostreptococcaceae; g__[Eubacterium] yurii group	4	NA	TRUE	TRUE	TRUE	TRUE
+fdf7fd8cdaf4e2e99499ee17b64f0d2a	k__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Planococcaceae; g__Chryseomicrobium	1	NA	TRUE	NA	NA	NA
+fe80c49f7469608d2ed1b1bcc8f00d6a	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Betaproteobacteriales; f__Burkholderiaceae; g__Undibacterium; s__uncultured Burkholderiales bacterium	2	NA	NA	TRUE	TRUE	NA
+ff20416d569906926bbdc51c5e351959	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas	1	NA	NA	NA	TRUE	NA
+ffda869f3ad4e36a6feef746dcbbc4b1	k__Bacteria; p__Proteobacteria; c__Alphaproteobacteria; o__Sphingomonadales; f__Sphingomonadaceae; g__Sphingomonas	4	NA	TRUE	TRUE	TRUE	TRUE
