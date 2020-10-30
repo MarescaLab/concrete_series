@@ -1364,11 +1364,11 @@ disp <- data.frame(disp_p_val = sapply(terms,beta_dist,dist = bc_dist)) %>%
 #Make summary table
 
 permanova_table <- bind_rows(seq_summary,margin_summary) %>% 
-  mutate(Metric = "gUniFrac") %>%
+  mutate(Metric = "Bray-Curtis") %>%
   filter(term %in% terms) %>% 
   select(Metric, terms_tested, Coefficient = "term", R2, F = "statistic", p.value) %>% 
   left_join(disp) %>% 
-  mutate(across(c("F","p.value","disp_p_val"),~round(.,3))) %>% 
+  mutate(across(c("F","p.value","disp_p_val", "R2"),~round(.,3))) %>% 
   rename(`Terms Tested` = "terms_tested", `Dispersion p.value` = "disp_p_val")
 
 knitr::kable(permanova_table)
