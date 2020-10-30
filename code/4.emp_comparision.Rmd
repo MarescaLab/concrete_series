@@ -1857,7 +1857,7 @@ mean_emp_sim <- combined_dists2 %>%
   coord_flip() + 
   #scale_y_reverse() +
   labs(x = NULL, y = "Similarity change from decontamination") +
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF4_emp_decontam_similarity_change.png", type = "cairo"))
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF7_emp_decontam_similarity_change.png", type = "cairo"))
 
 
 
