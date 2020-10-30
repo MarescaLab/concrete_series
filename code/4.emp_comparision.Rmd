@@ -1299,7 +1299,8 @@ inds <- concrete_inds$sign %>%
   select(otu, taxonomy, everything(), ind.val = "stat") 
 
 inds %>% 
-  write.xlsx(file="g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST11_indicator_values.xlsx", sheetName="ASV", append=TRUE, row.names=FALSE)
+  write.xlsx(file="g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST11_indicator_values.xlsx", sheetName="EMP_asv", append=TRUE, row.names=FALSE)
+
 ```
 
 
@@ -1376,84 +1377,6 @@ saveRDS(ind_ci, "data/processed/emp_data/g_concrete_ind_ci.rds")
 ENDSSH
 ```
 
-```{r}
-metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
-  mutate(empo_3 = if_else(empo_3 == "Concrete" & str_detect(`#SampleID`, "U"), "ASR_pos", empo_3)) %>%
-  mutate(empo_3 = if_else(empo_3 == "Concrete" & str_detect(`#SampleID`, "M"), "ASR_neg", empo_3))
-```
-
-#### Indicator **genera** analysis, with ASR +/- concrete split
-
-```{bash ind. genera analysis}
-date
-ssh akiledal@biomix.dbi.udel.edu "sbatch" <<'ENDSSH'
-#!/usr/local/bin/Rscript
-#SBATCH --job-name=g_inds_concrete_asr
-#SBATCH --chdir=/home/akiledal/Concrete_analysis
-#SBATCH --mem=500G
-#SBATCH -c 2
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=akiledal@udel.edu
-#SBATCH --exclude=biomix38
-#SBATCH --time=20-0
-
-#set biomix node because some (38) don't load R correctly (14, 11, and others work)
-
-system("hostname")
-
-########  R Code starts here #######
-
-library(tidyverse)
-library(qiime2R)
-library(readr)
-library(indicspecies)
-library(permute)
-library(phyloseq)
-library(vegan)
-
-phylo <- qiime2R::qza_to_phyloseq(features = "data/processed/emp_data/clust99_emp_tapwater_and_decontam_concrete_table.qza", 
-                                  taxonomy = "data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")
-
-metadata <- read_delim("data/processed/emp_data/emp_and_tapwater_comparison_map.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
-  mutate(empo_3 = if_else(empo_3 == "Concrete" & str_detect(`#SampleID`, "U"), "ASR_pos", empo_3)) %>%
-  mutate(empo_3 = if_else(empo_3 == "Concrete" & str_detect(`#SampleID`, "M"), "ASR_neg", empo_3))
-
-taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>% 
-  select(otu = Feature.ID, -Confidence, Taxon) %>%
-  separate(., Taxon, c("Kingdom","Phylum","Class","Order", "Family", "Genus","Species"), sep= ";", remove=TRUE) %>% 
-  #select(-confidence, OTUID = `#OTU ID`) %>% 
-  #filter(OTUID %in% rownames(otu_table)) %>% 
-  column_to_rownames("otu") %>% 
-  as.matrix()
-
-phylo <- metadata %>% column_to_rownames("#SampleID") %>% sample_data() %>% merge_phyloseq(phylo)
-
-raw_series_phyloseq <- phylo %>% prune_samples(sample_names(.) !="021715U_6",.)
-
-#Agglomerate at taxonomic level
-raw_series_phyloseq <- speedyseq::tax_glom(raw_series_phyloseq,"Genus")
-
-#Filter for taxa observed at least 10 times in 5 samples, and remove precursors
-ps <- raw_series_phyloseq %>% 
-  filter_taxa(function(x) sum(x > 10) > 5, TRUE) %>% 
-  subset_samples(!empo_3 %in% c("FlyAsh","Gravel","Powder","Sand", "Glass"))
-
-otu_table <- otu_table(ps) %>% as.data.frame() %>% as.matrix() %>% decostand("hell") %>% t()
-
-groupings <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$empo_3
-
-ind_val <- multipatt(otu_table,groupings, max.order = 2, control = how(nperm = 999))
-
-print("Indicator species analysis completed \tstarting confidence interval calculation.")
-
-ind_ci <- strassoc(otu_table, groupings, func = "IndVal.g", nboot.ci = 999)
-
-
-saveRDS(ind_val,"data/processed/emp_data/asr_g_concrete_indicators.rds")
-saveRDS(ind_ci, "data/processed/emp_data/asr_g_concrete_ind_ci.rds")
-
-ENDSSH
-```
 
 Get indicator genera results from biomix
 
@@ -1461,9 +1384,16 @@ Get indicator genera results from biomix
 library(tidyverse)
 library(qiime2R)
 library(data.table)
+library(xlsx)
+
+#Get the results from biomix
+#system("wsl sftp akiledal@biomix.dbi.udel.edu:Concrete_analysis/data/processed/emp_data/g_concrete_indicators.rds '/mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/g_concrete_indicators.rds'")
 
 g_inds <- readRDS("data/processed/emp_data/g_concrete_indicators.rds")
+#g_inds <- readRDS("data/processed/emp_data/asr_g_concrete_indicators.rds") #with ASR split
 
+
+#system("wsl sftp akiledal@biomix.dbi.udel.edu:g_concrete_ind_ci.rds /mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/g_concrete_ind_ci.rds")
 g_ind_ci <- readRDS("data/processed/emp_data/g_concrete_ind_ci.rds")
 
 concrete_otus <- read_rds("data/processed/emp_data/emp_otus_in_concrete.rds")
@@ -1471,6 +1401,7 @@ concrete_otus <- read_rds("data/processed/emp_data/emp_otus_in_concrete.rds")
 taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>%
   select(otu = "Feature.ID", -Confidence, taxonomy = "Taxon")
 
+#concrete_results <- read_rds("data/processed/emp_data/")
 
 inds <- g_inds$sign %>% 
   rownames_to_column("otu") %>%
@@ -1490,15 +1421,16 @@ concrete_genus_inds <- inds %>%
   #filter(s.Concrete == 1) %>% 
   filter(p.value < 0.05) %>% 
   mutate(taxonomy = str_remove(taxonomy,";D_6__.*")) %>% 
-  select(taxonomy, everything(), -otu, ind.val = "stat") %>% 
-  write.xlsx(file="g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST11_indicator_values.xlsx", sheetName="genus", append=TRUE, row.names=FALSE)
+  select(taxonomy, everything(), -otu, ind.val = "stat") 
+
+concrete_genus_inds %>% 
+  write.xlsx(file="g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST11_indicator_values.xlsx", sheetName="EMP_genus", append=TRUE, row.names=FALSE)
+
 
 long_concrete_inds <- concrete_genus_inds %>% 
   gather("env","ind", -c(otu,index,stat,p.value,taxonomy)) %>% 
   filter(ind == 1)
-
 ```
-
 
 
 

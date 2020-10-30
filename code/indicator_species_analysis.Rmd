@@ -48,8 +48,6 @@ otu_table <- otuTable(ps) %>% as.data.frame() %>% as.matrix() %>% t()
 ASR <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$asr_half
 
 
-
-
 ind_val <- multipatt(otu_table,ASR, max.order = 1, control = how(nperm = 999))
   
 summary(ind_val, indvalcomp = TRUE)
@@ -124,13 +122,22 @@ library(phyloseq)
 
 set.seed(300)
 
-conc_phylo <- qiime2R::qza_to_phyloseq(features = "data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom_table.qza", 
-                                       taxonomy = "data/qiime2/silva_taxonomy.qza")
+phylo_tax <- read_qza("data/qiime2/silva_taxonomy.qza")$data %>%
+  parse_taxonomy() %>% 
+  as.data.frame() %>% as.matrix() %>% tax_table() #df > matrix only done because otherwise phylo. was throwing errors
+
+phylo_table <- read_qza("data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom_table.qza")$data %>% 
+  as.data.frame() %>% as.matrix() %>% 
+  otu_table(taxa_are_rows = TRUE)
+
+conc_phylo <- merge_phyloseq(phylo_table, phylo_tax)
 
 metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>%
-  mutate(asr_half = paste0(ASR,"_",Halves))
+  mutate(asr_half = paste0(ASR,"_",Halves)) 
 
-taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% select(otu = "#OTU ID", -confidence, taxonomy) %>% mutate(taxonomy = str_remove(taxonomy,"; s_.*")) 
+taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
+  select(otu = "#OTU ID", -confidence, taxonomy) %>% 
+  mutate(taxonomy = str_remove(taxonomy,"; s_.*")) 
 
 samples_to_keep <- which(metadata$X.SampleID != "021715U_6")
 
@@ -138,142 +145,36 @@ sample_data(conc_phylo) <- metadata %>% column_to_rownames("#SampleID")
 
 raw_series_phyloseq <- conc_phylo %>% prune_samples(sample_names(.) !="021715U_6",.)
 
-#If performing on only the second half, also filters for taxa seen at least 5 times in 5 samples
-#genus_Phyloseq <- speedyseq::tax_glom(raw_series_phyloseq,"Genus") %>% filter_taxa(function(x) sum(x > 5) > 5, TRUE) %>% subset_samples(Halves = 2)
-
 #Just filter for taxa observed at least 5 times in 5 samples
 genus_Phyloseq <- speedyseq::tax_glom(raw_series_phyloseq,"Genus") %>% filter_taxa(function(x) sum(x > 5) > 5, TRUE)
 
-genus_ps_tab <- otu_table(genus_Phyloseq) %>% as.data.frame() %>% rownames_to_column("otu") %>% left_join(taxonomy) %>% mutate(tax_glom = str_extract(taxonomy, ".*g__[A-z0-9\\s]*")) %>% select(-taxonomy,-otu) %>% column_to_rownames("tax_glom") %>% t()
-
+genus_ps_tab <- otu_table(genus_Phyloseq) %>% as.data.frame() %>% 
+  rownames_to_column("otu") %>% 
+  left_join(taxonomy) %>% 
+  mutate(tax_glom = str_extract(taxonomy, ".*g__[A-z0-9\\s]*")) %>% 
+  select(-taxonomy,-otu) %>% 
+  column_to_rownames("tax_glom") %>% t()
 
 ASR <- metadata[match(rownames(genus_ps_tab),metadata$`#SampleID`),] %>% .$ASR
 
 genus_ind_val <- multipatt(genus_ps_tab,ASR, control = how(nperm = 999))
   
-summary(genus_ind_val, indvalcomp = TRUE)
+#summary(genus_ind_val, indvalcomp = TRUE)
 
 genus_inds <- genus_ind_val$sign
 
 reactive_ind <- genus_inds %>% 
   rownames_to_column("taxonomy") %>% 
   #filter(p.value <= 0.1, stat > 0.4 , s.reactive ==1) %>% 
-  filter(p.value <= 0.1, s.reactive_2 ==1) %>% 
+  filter(p.value <= 0.05, s.reactive ==1) %>% 
   mutate(tax_glom = str_extract(taxonomy, "g__[A-z]*"), tax_glom = str_remove(tax_glom,"g__"))
 
-#plot.taxa(unmit_ind$tax_glom,smooth_method = "lm", agglom = T)
+
+reactive_ind %>% 
+  select(taxonomy, everything(), ind.val = "stat") %>% 
+  write.xlsx(file="g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST11_indicator_values.xlsx", sheetName="ASR_genus", append=TRUE, row.names=FALSE)
 
 ```
-
-
-
-#Compare to another method (SIMPER) that looks at which taxa drive differences in bray curtis distances between the groups
-```{r}
-library(vegan)
-tab <- qiime2R::qza_to_phyloseq(features = "data/processed/biom_tables/raw/all_w_taxonomy_table.biom_table.qza", 
-                                       taxonomy = "data/qiime2/silva_taxonomy.qza") %>%
-  speedyseq::tax_glom("Genus") %>% 
-  otu_table() %>% .@.Data %>% as.data.frame() %>% rownames_to_column("otu") %>% 
-  left_join(taxonomy) %>% 
-  mutate(tax_glom = str_extract(taxonomy, ".*g__[A-z0-9\\s]*")) %>% 
-  select(-taxonomy,-otu) %>% group_by(tax_glom) %>% summarise_at(vars(-one_of("tax_glom")),~sum(.)) %>% column_to_rownames("tax_glom") %>% t()
-
-metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
-
-taxonomy <- read_delim("data/processed/silva_taxonomy.tsv", "\t", escape_double = FALSE, trim_ws = TRUE) %>% select(otu = "#OTU ID", -confidence, taxonomy) %>% mutate(taxonomy = str_remove(taxonomy,"; s_.*")) 
-
-
-simp_met <- metadata[match(rownames(tab),metadata$`#SampleID`),]
-
-
-mit_simper <- simper(tab,simp_met$Type, permutations = 100, parallel = 4)
-
-simper_df <- mit_simper$Concrete_Glass %>% as.data.frame() %>% filter(p < 0.2)
-
-```
-
-
-
-#Indicators for series halfs
-```{r}
-library(tidyverse)
-library(qiime2R)
-library(readr)
-library(indicspecies)
-library(permute)
-library(phyloseq)
-
-taxonomy <- read_tsv("data/processed/silva_taxonomy.tsv") %>%
-  select(otu = "#OTU ID", taxonomy)
-
-#For decontaminated table grouped at the genus level
-otu_table <- qza_to_phyloseq(features = "data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom_table.qza",
-                           taxonomy = "data/qiime2/silva_taxonomy.qza") %>%
-          speedyseq::tax_glom("Genus") %>%
-          otu_table() %>% .@.Data %>%
-          t() %>% as.data.frame()
-
-
-
-metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
-
-groups <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$Halves 
-
-ind_val <- multipatt(otu_table,groups, max.order = 1, control = how(nperm = 999))
-  
-summary(ind_val, indvalcomp = TRUE)
-
-half_inds <- ind_val$sign %>% 
-  as.data.frame() %>% 
-  rownames_to_column("otu") %>% 
-  left_join(taxonomy)
-
-#write_tsv(decontam_material_inds,"g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/Supplements/decontam_material_ind_genera.tsv")
-
-```
-
-
-
-#Indicators for seasons
-```{r}
-library(tidyverse)
-library(qiime2R)
-library(readr)
-library(indicspecies)
-library(permute)
-library(phyloseq)
-
-taxonomy <- read_tsv("data/processed/silva_taxonomy.tsv") %>%
-  select(otu = "#OTU ID", taxonomy)
-
-#For decontaminated table grouped at the genus level
-otu_table <- qza_to_phyloseq(features = "data/processed/biom_tables/concrete_only/all_w_taxonomy_decontam_table.biom_concrete.biom_table.qza",
-                           taxonomy = "data/qiime2/silva_taxonomy.qza") %>%
-          speedyseq::tax_glom("Genus") %>%
-          otu_table() %>% .@.Data %>%
-          t() %>% as.data.frame()
-
-
-
-metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
-
-groups <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$Season
-
-ind_val <- multipatt(otu_table,groups, max.order = 1, control = how(nperm = 999))
-  
-summary(ind_val, indvalcomp = TRUE)
-
-season_inds <- ind_val$sign %>% 
-  as.data.frame() %>% 
-  rownames_to_column("otu") %>% 
-  left_join(taxonomy)
-
-#write_tsv(decontam_material_inds,"g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/Supplements/decontam_material_ind_genera.tsv")
-
-```
-
-
-
 
 
 #Indicators for material type
@@ -284,18 +185,24 @@ library(readr)
 library(indicspecies)
 library(permute)
 library(phyloseq)
+library(xlsx)
 
 taxonomy <- read_tsv("data/processed/silva_taxonomy.tsv") %>%
   select(otu = "#OTU ID", taxonomy)
 
+phylo_tax <- read_qza("data/qiime2/silva_taxonomy.qza")$data %>%
+  parse_taxonomy() %>% 
+  as.data.frame() %>% as.matrix() %>% tax_table() #df > matrix only done because otherwise phylo. was throwing errors
+
+phylo_table <- read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_table.qza")$data %>% 
+  as.data.frame() %>% as.matrix() %>% 
+  otu_table(taxa_are_rows = TRUE)
+
 #For decontaminated table grouped at the genus level
-otu_table <- qza_to_phyloseq(features = "data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_table.qza",
-                           taxonomy = "data/qiime2/silva_taxonomy.qza") %>%
-          speedyseq::tax_glom("Genus") %>%
-          otu_table() %>% .@.Data %>%
-          t() %>% as.data.frame()
-
-
+otu_table <- merge_phyloseq(phylo_table, phylo_tax) %>% 
+  speedyseq::tax_glom("Genus") %>%
+  otu_table() %>% .@.Data %>%
+  t() %>% as.data.frame()
 
 metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
 
@@ -303,38 +210,17 @@ groups <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$Type
 
 ind_val <- multipatt(otu_table,groups, max.order = 3, control = how(nperm = 999))
   
-summary(ind_val, indvalcomp = TRUE)
+#summary(ind_val, indvalcomp = TRUE)
 
 decontam_material_inds <- ind_val$sign %>% 
   as.data.frame() %>% 
   rownames_to_column("otu") %>% 
-  left_join(taxonomy)
+  left_join(taxonomy) %>% 
+  mutate(taxonomy = str_remove(taxonomy,"; s__.*")) %>% 
+  select(otu, taxonomy, everything(), ind.val = "stat") 
 
-write_tsv(decontam_material_inds,"g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/Supplements/decontam_material_ind_genera.tsv")
-
-
-#For decontaminated table grouped at the genus level
-otu_table <- qza_to_phyloseq(features = "data/processed/biom_tables/raw/all_w_taxonomy_table.biom_table.qza",
-                           taxonomy = "data/qiime2/silva_taxonomy.qza") %>%
-          speedyseq::tax_glom("Genus") %>%
-          otu_table() %>% .@.Data %>%
-          t() %>% as.data.frame()
-
-
-metadata <- read_delim("data/sample-metadata.tsv", "\t", escape_double = FALSE, trim_ws = TRUE)
-
-groups <- metadata[match(rownames(otu_table),metadata$`#SampleID`),] %>% .$Type
-
-ind_val <- multipatt(otu_table,groups, max.order = 3, control = how(nperm = 999))
-  
-summary(ind_val, indvalcomp = TRUE)
-
-raw_material_inds <- ind_val$sign %>% 
-  as.data.frame() %>% 
-  rownames_to_column("otu") %>% 
-  left_join(taxonomy)
-
-write_tsv(raw_material_inds,"g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/Supplements/raw_material_ind_genera.tsv")
+decontam_material_inds %>% 
+  write.xlsx(file="g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST11_indicator_values.xlsx", sheetName="concrete_materials_genus", append=TRUE, row.names=FALSE)
 
 ```
 
