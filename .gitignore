@@ -6,3 +6,5 @@
 *_files/
 data/raw/
 *demux.qza
+*.qza
+*.qzv
