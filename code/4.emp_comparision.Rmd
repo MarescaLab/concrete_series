@@ -1295,7 +1295,11 @@ inds <- concrete_inds$sign %>%
   #cbind(concrete_inds$A) %>% 
   filter(p.value < 0.05) %>% 
   filter(otu %in% emp_concrete_otus) %>% 
-  left_join(taxonomy)
+  left_join(taxonomy) %>% 
+  select(otu, taxonomy, everything(), ind.val = "stat") 
+
+inds %>% 
+  write.xlsx(file="g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST11_indicator_values.xlsx", sheetName="ASV", append=TRUE, row.names=FALSE)
 ```
 
 
@@ -1458,14 +1462,8 @@ library(tidyverse)
 library(qiime2R)
 library(data.table)
 
-#Get the results from biomix
-#system("wsl sftp akiledal@biomix.dbi.udel.edu:Concrete_analysis/data/processed/emp_data/g_concrete_indicators.rds '/mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/g_concrete_indicators.rds'")
-
 g_inds <- readRDS("data/processed/emp_data/g_concrete_indicators.rds")
-#g_inds <- readRDS("data/processed/emp_data/asr_g_concrete_indicators.rds") #with ASR split
 
-
-#system("wsl sftp akiledal@biomix.dbi.udel.edu:g_concrete_ind_ci.rds /mnt/d/Google\ Drive/Documents/UDel/Research/Concrete_analysis/data/processed/emp_data/g_concrete_ind_ci.rds")
 g_ind_ci <- readRDS("data/processed/emp_data/g_concrete_ind_ci.rds")
 
 concrete_otus <- read_rds("data/processed/emp_data/emp_otus_in_concrete.rds")
@@ -1473,7 +1471,6 @@ concrete_otus <- read_rds("data/processed/emp_data/emp_otus_in_concrete.rds")
 taxonomy <- read_qza("data/processed/emp_data/emp_tapwater_and_concrete_silva_taxonomy.qza")$data %>%
   select(otu = "Feature.ID", -Confidence, taxonomy = "Taxon")
 
-#concrete_results <- read_rds("data/processed/emp_data/")
 
 inds <- g_inds$sign %>% 
   rownames_to_column("otu") %>%
@@ -1491,7 +1488,10 @@ ind_ci <- data.frame(g_ind_ci$stat) %>% rownames_to_column("otu") %>% gather("so
 concrete_genus_inds <- inds %>% 
   filter(otu %in% concrete_otus) %>% 
   #filter(s.Concrete == 1) %>% 
-  filter(p.value < 0.05)
+  filter(p.value < 0.05) %>% 
+  mutate(taxonomy = str_remove(taxonomy,";D_6__.*")) %>% 
+  select(taxonomy, everything(), -otu, ind.val = "stat") %>% 
+  write.xlsx(file="g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST11_indicator_values.xlsx", sheetName="genus", append=TRUE, row.names=FALSE)
 
 long_concrete_inds <- concrete_genus_inds %>% 
   gather("env","ind", -c(otu,index,stat,p.value,taxonomy)) %>% 
