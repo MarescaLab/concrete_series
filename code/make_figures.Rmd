@@ -482,6 +482,8 @@ concrete_composition <- read_csv("analysis/source_tracker/actual_concrete_compos
 
 Plot leave-one-out validation
 
+### SF5: Sourcetracking leave one out validation
+
 ```{r}
 #read in results
 loo_results <- read_delim("analysis/source_tracker/st_out_mit/loo/mixing_proportions.txt", delim = "\t") %>%
@@ -1043,13 +1045,15 @@ obs_table <- summary_table %>%
 
 ```
 
-## ST2: Contaminant taxa
+## ST2: Contaminants by detection method
 
 Produced in the decontamination .Rmd document.
 
-## ST3: Contaminants by detection method
+
+## ST3: Contaminant taxa
 
 Produced in the decontamination .Rmd document.
+
 
 ## SF1: Euler plot of contaminants identified per method
 
@@ -1063,71 +1067,7 @@ Produced in the decontamination .Rmd document.
 
 Produced in the decontamination .Rmd document.
 
-## SF4: Decontamination changes in concrete similarity to EMP groups
-
-Produced in the EMP comparison .Rmd document.
-
-## ST4: community composition at each taxonomic level
-
-```{r}
-library(readr)
-library(phyloseq)
-library(qiime2R)
-library(xlsx)
-
-metadata <- read_tsv("data/sample-metadata.tsv") %>% 
-  rename(sample = "#SampleID")
-
-table <- read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_table.qza")$data %>% 
-  as.data.frame() %>% 
-  rownames_to_column("otu") %>% 
-  gather("sample","count",-"otu") %>% 
-  left_join(metadata %>% select(sample,Type)) %>% 
-  group_by(otu,Type) %>% 
-  summarise(count = sum(count)) %>% 
-  ungroup() %>% group_by(Type) %>% 
-  mutate(rel_abund = count / sum(count)) %>% #make rel. abundance
-  select(otu,Type,rel_abund) %>% 
-  spread("Type","rel_abund") %>% 
-  column_to_rownames("otu") %>% 
-  otu_table(taxa_are_rows = TRUE)
-
-metadat <- metadata %>% 
-  column_to_rownames("sample") %>% sample_data()
-
-tax <- qza_to_phyloseq(taxonomy = "data/qiime2/silva_taxonomy.qza")
-
-decontam_ps <- phyloseq(table, tax) #%>% transform_sample_counts(function(x) x / sum(x))
-
-
-levels <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
-outfile <- "g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST4_community_composition_all_tax_levels.xlsx"
-
-
-for (level in levels){
-
-  summarized_table <- speedyseq::tax_glom(decontam_ps,level)
-  tab <- summarized_table %>% otu_table() %>% as.data.frame() %>% rownames_to_column("otu")
-  tax <- summarized_table %>% tax_table() %>% .@.Data %>% as.data.frame() %>% rownames_to_column("otu") %>% left_join(tab) %>% select(-otu)
-  
-    
-  if (level =="Kingdom"){
-    completed <- level
-    write.xlsx(tax %>% select(one_of(completed,colnames(tab))), 
-               file= outfile, sheetName=level, row.names=FALSE)
-  }
-  
-  if (level != "Kingdom"){
-    completed <- c(completed,level)
-    write.xlsx(tax %>% select(one_of(completed,colnames(tab))),
-               file=outfile, sheetName=level, append=TRUE, row.names=FALSE)
-  }
-  
-}
-
-```
-
-## SF6: Within sample diverity before decontamination
+## SF4: Within sample diverity before decontamination
 
 Linear mixed effects model of alpha diversity data, for RAW data
 
@@ -1311,14 +1251,76 @@ design <- "
 wrap_plots(shannon_tab, shannon, shan_precursors, faith_tab, faith, faith_precursors) + 
   plot_layout(design = design, guides = "collect",heights = c(1,1,0.3)) + 
   plot_annotation(tag_levels = 'a') + 
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF6_alpha_diversity_raw.pdf", 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF4_alpha_diversity_raw.pdf", 
          device = cairo_pdf, dpi = 600, width = 6.8, height = 4, scale = 1.5) +
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF6_alpha_diversity_raw.eps", 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF4_alpha_diversity_raw.eps", 
          device=cairo_ps, fallback_resolution = 600, dpi = 600, width = 6.8, height = 4, scale = 1.5) +
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF6_alpha_diversity_raw.png", 
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF4_alpha_diversity_raw.png", 
          type = "cairo", dpi = 600, width = 6.8, height = 4, scale = 1.5)
 
 ```
+
+
+## ST4: Community composition at each taxonomic level
+
+```{r}
+library(readr)
+library(phyloseq)
+library(qiime2R)
+library(xlsx)
+
+metadata <- read_tsv("data/sample-metadata.tsv") %>% 
+  rename(sample = "#SampleID")
+
+table <- read_qza("data/processed/biom_tables/decontaminated/all_w_taxonomy_decontam_table.biom_table.qza")$data %>% 
+  as.data.frame() %>% 
+  rownames_to_column("otu") %>% 
+  gather("sample","count",-"otu") %>% 
+  left_join(metadata %>% select(sample,Type)) %>% 
+  group_by(otu,Type) %>% 
+  summarise(count = sum(count)) %>% 
+  ungroup() %>% group_by(Type) %>% 
+  mutate(rel_abund = count / sum(count)) %>% #make rel. abundance
+  select(otu,Type,rel_abund) %>% 
+  spread("Type","rel_abund") %>% 
+  column_to_rownames("otu") %>% 
+  otu_table(taxa_are_rows = TRUE)
+
+metadat <- metadata %>% 
+  column_to_rownames("sample") %>% sample_data()
+
+tax <- qza_to_phyloseq(taxonomy = "data/qiime2/silva_taxonomy.qza")
+
+decontam_ps <- phyloseq(table, tax) #%>% transform_sample_counts(function(x) x / sum(x))
+
+
+levels <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+outfile <- "g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST4_community_composition_all_tax_levels.xlsx"
+
+
+for (level in levels){
+
+  summarized_table <- speedyseq::tax_glom(decontam_ps,level)
+  tab <- summarized_table %>% otu_table() %>% as.data.frame() %>% rownames_to_column("otu")
+  tax <- summarized_table %>% tax_table() %>% .@.Data %>% as.data.frame() %>% rownames_to_column("otu") %>% left_join(tab) %>% select(-otu)
+  
+    
+  if (level =="Kingdom"){
+    completed <- level
+    write.xlsx(tax %>% select(one_of(completed,colnames(tab))), 
+               file= outfile, sheetName=level, row.names=FALSE)
+  }
+  
+  if (level != "Kingdom"){
+    completed <- c(completed,level)
+    write.xlsx(tax %>% select(one_of(completed,colnames(tab))),
+               file=outfile, sheetName=level, append=TRUE, row.names=FALSE)
+  }
+  
+}
+
+```
+
 
 ## ST6: PERMANOVA on Bray-Curtis distances
 
@@ -1507,7 +1509,7 @@ gt::gt(mantel_table) %>%
 
 ```
 
-## SF7: Concrete similarity to EMP groups over time
+## SF6: Concrete similarity to EMP groups over time
 
 ```{r}
 library(patchwork)
@@ -1570,11 +1572,14 @@ decontam_plot_data %>%
   geom_smooth(method = "lm") +
   facet_wrap(s2_empo_3 ~ ., ncol = 4) +
   theme_bw() +
-  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF7_concrete_EMPO3_sim_over_time.png", type = "cairo", width = 8, height = 6)
+  ggsave("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/SF6_concrete_EMPO3_sim_over_time.png", type = "cairo", width = 8, height = 6)
 
   
 ```
 
+## SF7: Decontamination changes in concrete similarity to EMP groups
+
+Produced in the EMP comparison .Rmd document.
 
 
 ## ST8: Change in prevalence of taxa over time
@@ -1722,11 +1727,7 @@ write_tsv(logit_res,"g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder
 ```
 
 
-## ST9: Change in relative abundance over time
-
-Computed in the code below alongside ST10.
-
-## ST10:: Seasonal changes in relative abundance
+## ST9:: Seasonal changes in relative abundance
 
 ```{r}
 library(tidyverse)
@@ -1867,11 +1868,18 @@ for (tax_lev in tax_levels){
 
 seasonal_wide <- seasonal_taxa %>%
   pivot_wider(names_from = term ,values_from = c(edf,ref.df,statistic,p.value)) %>% 
-  write_tsv("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST9_long-term_relative_abundance_change.tsv")
+  write_tsv("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST10_long-term_relative_abundance_change.tsv")
 
 over_time_wide <- over_time_taxa %>%
   pivot_wider(names_from = term ,values_from = c(edf,ref.df,statistic,p.value)) %>% 
-  write_tsv("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST10_seasonal_relative_abundance_change.tsv")
+  write_tsv("g:/Shared drives/Maresca Lab Shared Stuff/Concrete/Cylinder series paper/Figures/final/ST9_seasonal_relative_abundance_change.tsv")
 
 
 ```
+
+
+## ST10: Change in relative abundance over time
+
+Computed in the code below alongside ST9.
+
+
