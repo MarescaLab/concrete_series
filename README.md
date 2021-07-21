@@ -32,3 +32,6 @@ Running this analysis requires R. The following python tools are also required:
 #### Running
 
 Several steps are quite computationally intensive and use of an HPC is strongly suggested.
+
+## July 2021 *ggsave* Update
+Many of the figures produced with ggplot inadvertantly used an ["off-label"](https://www.tidyverse.org/blog/2021/06/off-label-uses-in-ggplot2/?utm_source=feedburner&utm_medium=feed&utm_campaign=Feed:+rweekly-live+(R+Weekly+Live)) use of ggsave() and will now produce error codes. The fix is simple and document in the included link, but the short version is that ggplot() + ggsave() no longer works, and so calls to ggsave should be replaced. Several replacement options are available, including relying on the default last_plot(), pipeing the ggplot object (%>% instead of +), or saving the ggplot to an object and explicitely passing it to ggsave. Alternately, an older version of ggpplot could also be used.
